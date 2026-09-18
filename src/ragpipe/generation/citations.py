@@ -30,12 +30,18 @@ _MARKER_RE = re.compile(r"\[S(\d{1,3})\]")
 # wrong sentence -- the [1] lands at the head of the next claim, so every
 # claim is then verified against the passage belonging to its neighbour.
 _ABBREV = r"(?<!\be\.g)(?<!\bi\.e)(?<!\bet\sal)(?<!\bcf)(?<!\bvs)(?<!\bFig)(?<!\bEq)(?<!\bSec)"
-# The lookarounds refuse to break anywhere inside an ellipsis: quoted maths
-# such as "(y1, . . . , yT)" would otherwise shatter one sentence into several
-# claims, most of them a bare ".", each then counted as an uncited claim.
-# `(?!\s*[.!?])` rejects the first dots of a run, `(?<!\.\s)` the last.
+# A sentence terminator only counts when whitespace or end-of-text follows it.
+# Without `(?=\s|$)` every dot inside an email address or dotted identifier is
+# a sentence break: an author block like "Chenxi.Wu25 ... @student.xjtlu.edu.cn"
+# shattered into ten bogus claims ("edu.", "xjtlu.", "Wang19}@student."), none
+# of them carrying the citation marker, which dropped a perfectly good answer's
+# support ratio to 23% and refused it.
+#
+# The lookarounds around the terminator refuse to break inside an ellipsis:
+# quoted maths such as "(y1, . . . , yT)" would otherwise fragment one sentence
+# into several, most of them a bare ".".
 _CLAIM_RE = re.compile(
-    rf"(.+?{_ABBREV}(?<!\.\s)[.!?](?!\s*[.!?])[\"')\]]?)((?:\s*\[S\d{{1,3}}\])*)",
+    rf"(.+?{_ABBREV}(?<!\.\s)[.!?](?!\s*[.!?])[\"')\]]?)((?:\s*\[S\d{{1,3}}\])*)(?=\s|$)",
     re.DOTALL,
 )
 

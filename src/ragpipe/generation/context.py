@@ -33,8 +33,15 @@ from ..tokenization import count_tokens, truncate_to_tokens
 
 # Must stay in sync with the block layout written by `render_context`.
 MARKER_PREFIX = "S"
+# The locator is taken as the rest of the line rather than as a balanced
+# parenthesised group. An earlier `\(([^)]*)\)` form failed on any heading
+# containing parentheses -- "Results > ... (RE3 & RE5)" is a real example from
+# the corpus -- and a header that fails to match does not merely lose its
+# locator: the block is never recognised, its text merges into the PREVIOUS
+# passage, and every sentence in it is then attributed to the wrong chunk.
+# That corrupts citations silently, so this regex stays permissive.
 BLOCK_HEADER_RE = re.compile(
-    rf"^\s*\[{MARKER_PREFIX}(\d+)\]\s*(?:\(([^)]*)\))?\s*$", re.MULTILINE
+    rf"^[ \t]*\[{MARKER_PREFIX}(\d+)\][ \t]*(.*)$", re.MULTILINE
 )
 
 

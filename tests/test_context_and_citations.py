@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from ragpipe.generation.citations import (
     extract_markers,
     resolve_citations,
@@ -144,3 +146,31 @@ def test_resolved_citation_carries_full_provenance():
     assert c.page_start == 2
     assert c.section_path == ["3 Model Architecture"]
     assert "p. 2" in c.locator
+
+
+def test_email_addresses_do_not_fragment_claims():
+    """Regression: dots inside "@student.xjtlu.edu.cn" were read as sentence
+    terminators, shattering an author block into ten bogus uncited claims and
+    dropping a good answer's support ratio to 23%."""
+    text = (
+        "Authors are {Chenxi.Wu25, Zimu.Wang19}@student.xjtlu.edu.cn and they "
+        "report results. [S1]"
+    )
+    claims = split_claims(text)
+    assert len(claims) == 1
+    assert claims[0].markers == [1]
+    assert "edu.cn" in claims[0].text
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("See https://example.com/path.html for details. [S1]", 1),
+        ("Accuracy is 91.5% overall. [S1]", 1),
+        ("It uses v1.5 weights. [S1]", 1),
+        ("Filed under cs.CL last year. [S1]", 1),
+        ("A is true. [S1] B is false. [S2]", 2),
+    ],
+)
+def test_dotted_tokens_are_not_sentence_boundaries(text, expected):
+    assert len(split_claims(text)) == expected

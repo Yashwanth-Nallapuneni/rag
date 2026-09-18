@@ -104,6 +104,24 @@ class Answerer:
                 timings,
             )
 
+        # Relevance gate, checked BEFORE generation so an off-topic question
+        # costs nothing to refuse. Grounding and relevance are different
+        # properties: a faithful quotation of an irrelevant passage passes
+        # every citation check and still fails the user.
+        gate = self.settings.citation.min_relevance_score
+        if self.settings.citation.enforce and gate is not None:
+            scored = [c.rerank_score for c in contexts if c.rerank_score is not None]
+            if scored and max(scored) < gate:
+                return self._refuse(
+                    question,
+                    AnswerStatus.REFUSED_NO_CONTEXT,
+                    f"best passage scored {max(scored):.2f} for relevance to this "
+                    f"question, below the {gate:.2f} threshold: the corpus does "
+                    f"not appear to cover it",
+                    contexts,
+                    timings,
+                )
+
         with timed(timings, "context"):
             rendered = render_context(
                 contexts,
@@ -187,10 +205,14 @@ class Answerer:
         if uncited:
             log.info("%d answer sentence(s) carry no citation", len(uncited))
             answer.usage["uncited_sentences"] = len(uncited)
+        if verdicts:
+            answer.usage["claims_checked"] = len(verdicts)
+            answer.usage["claims_supported"] = sum(1 for v in verdicts if v.supported)
         return answer
 
 
 def build_answerer(settings: Settings) -> Answerer:
     from ..index.builder import get_store
+    from .verify import get_verifier
 
-    return Answerer(settings, get_store(settings))
+    return Answerer(settings, get_store(settings), verifier=get_verifier(settings))

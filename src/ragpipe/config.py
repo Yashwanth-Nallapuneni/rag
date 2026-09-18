@@ -159,6 +159,9 @@ class GenerationConfig(BaseModel):
 
 class CitationConfig(BaseModel):
     enforce: bool = True
+    # A raw cross-encoder logit; re-measure if the reranker model changes.
+    # None disables the relevance gate.
+    min_relevance_score: float | None = -7.0
     min_supported_ratio: float = 0.8
     verifier: Literal["lexical", "llm", "hybrid"] = "hybrid"
     lexical_threshold: float = 0.45

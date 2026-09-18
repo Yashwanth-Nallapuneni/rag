@@ -8,10 +8,10 @@ The point of this project is not the demo. It is the discipline around it:
 hybrid retrieval, cross-encoder reranking, enforced citations, and an
 evaluation harness that **gates CI on answer faithfulness**.
 
-> Status: Phase 4 of 6 complete. Ingestion, chunking, hybrid BM25 + vector
-> retrieval, cross-encoder reranking, cited answers and a FastAPI service all
-> work end to end. Citation enforcement is Phase 5; the RAGAS CI gate is
-> Phase 6. 199 tests passing.
+> Status: Phase 5 of 6 complete. Ingestion, hybrid retrieval, reranking,
+> enforced citations, a FastAPI service and a Streamlit demo all work end to
+> end. The RAGAS evaluation harness and CI gate are Phase 6.
+> 233 tests passing.
 
 ## Why the provider abstraction
 
@@ -32,6 +32,7 @@ make ingest      # parse + chunk  -> 1054 chunks from 40 papers
 make index       # embed + store  -> ChromaDB, ~35s
 make ask Q="what problem does self-attention solve?"
 make serve       # API on :8000, interactive docs at /docs
+make ui          # Streamlit demo on :8501
 make test        # 156 offline tests
 ```
 
@@ -65,8 +66,47 @@ paper's own bibliography entry 4. Quoting a passage verbatim then yields an
 answer that appears to cite passages which may not exist. `[S4]` cannot
 collide.
 
-When the retrieved passages do not support an answer, the system refuses. The
-refusal is detected from a sentinel the prompt mandates rather than by
+## Refusing to answer
+
+The system declines rather than guessing, and it checks two *different*
+properties to decide.
+
+**Grounding** -- is each sentence actually supported by the passage it cites?
+Every claim is verified independently, cheapest check first:
+
+1. *Content-word coverage* against the cited passage. Fast, but a weak proxy
+   for entailment on its own: "X improves Y" and "X does not improve Y"
+   overlap almost completely.
+2. *Numeric agreement* -- every figure in a claim must appear in the cited
+   passage. The highest-precision cheap check available on an academic corpus:
+   a claim of "2.5 BLEU" against a passage saying "3.1 BLEU" has flawless word
+   overlap and is simply false.
+3. *Negation parity* -- a claim that negates where its passage does not is
+   unsupported however well the words match. This is the case coverage cannot
+   see.
+
+An LLM judge settles only the ambiguous middle, so its cost tracks ambiguity
+rather than answer length. Hard numeric and negation failures are never
+escalated: a model must not be able to talk itself into accepting 2.5 where
+the passage says 3.1. If fewer than `min_supported_ratio` (0.8) of claims
+survive, the answer is refused and the failing verdicts are shown.
+
+**Relevance** -- do the passages address the question at all? This is a
+separate property, and conflating the two is a real trap: asked *"what is the
+capital of Mongolia?"*, an early build retrieved a passage about Toronto
+weather stations, quoted it faithfully, and scored **100% supported**. It was
+perfectly grounded and completely useless. The cross-encoder settles this,
+since query-passage relevance is exactly what it is trained for. Measured on
+this corpus, on-topic questions score −4.8 to +7.2 for their best passage and
+off-topic questions −11.0 to −7.8, so the gate sits at −7.0. That number is a
+raw logit for one specific reranker model -- change the model and it must be
+re-measured.
+
+On a 14-question probe (8 answerable, 6 not) the system currently answers 8/8
+and refuses 6/6. That is a smoke test, not an evaluation; the labelled version
+arrives with the golden dataset in Phase 6.
+
+Refusals are detected from a sentinel the prompt mandates rather than by
 pattern-matching apologetic prose, which varies by model and is unreliable to
 parse. Over the API a refusal is a **200 with `status: refused_*`** -- it is a
 product behaviour the client renders, not an HTTP failure.

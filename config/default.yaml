@@ -85,6 +85,18 @@ generation:
 
 citation:
   enforce: true
+  # Relevance gate, separate from grounding. An extractive answer can be 100%
+  # grounded in a passage that does not address the question at all -- asking
+  # "what is the capital of Mongolia?" over an ML corpus returned a chunk
+  # about Toronto weather stations, quoted it faithfully, and scored as fully
+  # supported. The cross-encoder is the right instrument here because it is
+  # trained on query-passage relevance.
+  #
+  # This is a raw ms-marco-MiniLM-L-6-v2 logit, not a probability, so it is
+  # specific to that model: MEASURE AGAIN if you change rerankers.
+  # Measured on this corpus: on-topic questions scored -4.8 to +7.2 for their
+  # best passage, off-topic questions -11.0 to -7.8. -7.0 sits in that gap.
+  min_relevance_score: -7.0
   min_supported_ratio: 0.8    # below this the answer is refused
   verifier: hybrid            # lexical | llm | hybrid
   lexical_threshold: 0.45

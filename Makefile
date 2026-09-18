@@ -2,7 +2,7 @@ VENV := .venv
 PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 
-.PHONY: help install corpus ingest index ask serve bench bench-sweep test test-all lint doctor config clean
+.PHONY: help install corpus ingest index ask ui serve bench bench-sweep test test-all lint doctor config clean
 
 help:
 	@grep -E '^[a-zA-Z-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "};{printf "  \033[36m%-12s\033[0m %s\n",$$1,$$2}'
@@ -23,6 +23,9 @@ index: ## embed the chunks into the vector store
 
 ask: ## ask a question: make ask Q="what is self-attention?"
 	PYTHONPATH=src $(PY) -m ragpipe.cli ask "$(Q)" --show-context
+
+ui: ## run the Streamlit demo on http://localhost:8501
+	PYTHONPATH=src $(VENV)/bin/streamlit run app/streamlit_app.py
 
 serve: ## run the API on http://localhost:8000 (docs at /docs)
 	PYTHONPATH=src $(VENV)/bin/uvicorn ragpipe.api.app:app --reload --port 8000

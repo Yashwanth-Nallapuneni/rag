@@ -31,7 +31,10 @@ _STOPWORDS = {
 
 # Matches a context block header like: [S2] (Attention Is All You Need | p. 4)
 # The S prefix keeps these distinct from a paper's own "[4, 15]" references.
-_BLOCK_RE = re.compile(r"^\s*\[S(\d+)\]\s*(?:\(([^)]*)\))?\s*$", re.MULTILINE)
+# The locator is the rest of the line: requiring a balanced "(...)" group broke
+# on headings that contain parentheses, silently merging that passage into the
+# previous one and mis-citing every sentence in it.
+_BLOCK_RE = re.compile(r"^[ \t]*\[S(\d+)\][ \t]*(.*)$", re.MULTILINE)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\[])")
 # Anything from one of these headings onward is instruction, not context.
 _TAIL_RE = re.compile(
