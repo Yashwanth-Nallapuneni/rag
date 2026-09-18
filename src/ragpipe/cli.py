@@ -67,6 +67,26 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def _cmd_ingest(args: argparse.Namespace) -> int:
+    from ragpipe.ingest.pipeline import ingest_corpus
+
+    s = load_settings(env=args.env)
+    if args.chunk_size:
+        s.chunking.chunk_size = args.chunk_size
+    if args.chunk_overlap is not None:
+        s.chunking.chunk_overlap = args.chunk_overlap
+
+    chunks, report = ingest_corpus(s, sources=args.source or None, write=not args.dry_run)
+    print(json.dumps(report, indent=2))
+    if args.sample and chunks:
+        print("\n--- sample chunks ---")
+        step = max(1, len(chunks) // args.sample)
+        for chunk in chunks[::step][: args.sample]:
+            print(f"\n[{chunk.chunk_id}] {chunk.locator()}  ({chunk.token_count} tokens)")
+            print(f"  {chunk.text[:300].strip()}...")
+    return 0 if report["parsed"] and not report["failed"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ragpipe", description="Production-grade RAG pipeline")
     p.add_argument("--env", default=None, help="config/<env>.yaml layer to apply")
@@ -79,6 +99,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     d = sub.add_parser("doctor", help="check provider availability")
     d.set_defaults(func=_cmd_doctor)
+
+    i = sub.add_parser("ingest", help="parse and chunk the corpus")
+    i.add_argument("source", nargs="*", help="files or URLs (default: the whole corpus)")
+    i.add_argument("--chunk-size", type=int, default=None)
+    i.add_argument("--chunk-overlap", type=int, default=None)
+    i.add_argument("--sample", type=int, default=0, help="print N sample chunks")
+    i.add_argument("--dry-run", action="store_true", help="do not write chunks.jsonl")
+    i.set_defaults(func=_cmd_ingest)
     return p
 
 
