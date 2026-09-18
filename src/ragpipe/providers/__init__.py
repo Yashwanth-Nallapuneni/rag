@@ -54,6 +54,14 @@ def get_llm(settings: "Settings") -> LLMProvider:
         from .llm.openai import OpenAILLM
 
         return OpenAILLM(cfg)
+    if provider == "groq":
+        from .llm.groq import GroqLLM
+
+        return GroqLLM(cfg)
+    if provider == "openrouter":
+        from .llm.openrouter import OpenRouterLLM
+
+        return OpenRouterLLM(cfg)
     if provider == "ollama":
         from .llm.ollama import OllamaLLM
 

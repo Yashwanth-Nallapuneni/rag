@@ -134,12 +134,33 @@ class RerankConfig(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    provider: Literal["mock", "anthropic", "openai", "ollama"] = "mock"
+    provider: Literal["mock", "anthropic", "openai", "groq", "openrouter", "ollama"] = "mock"
     model: str | None = None
     temperature: float = 0.0
     max_tokens: int = 1024
     timeout_s: int = 60
     max_retries: int = 3
+
+    # Overrides that make an arbitrary OpenAI-compatible endpoint (DeepSeek,
+    # Together, a local vLLM server, ...) work with provider: openai (or a
+    # new one-line registry entry) without any new provider code: point
+    # base_url at the host and api_key_env at whatever env var holds its key.
+    base_url: str | None = None
+    api_key_env: str | None = None
+
+    # Client-side pacing so a rate-limited (e.g. free-tier) key does not just
+    # 429 in a loop. None means unlimited -- paid-tier users see no change.
+    # Groq's own free-tier ceilings are filled in as defaults by GroqLLM when
+    # these are left unset (see providers/llm/groq.py).
+    requests_per_minute: int | None = None
+    tokens_per_minute: int | None = None
+    requests_per_day: int | None = None
+    tokens_per_day: int | None = None
+
+    # OpenRouter attribution headers (HTTP-Referer / X-Title). Ignored by
+    # every other provider.
+    http_referer: str | None = None
+    app_title: str | None = None
 
 
 class PromptsConfig(BaseModel):

@@ -37,6 +37,23 @@ DEFAULT_PRICES: dict[str, tuple[float, float]] = {
     "claude-haiku-4-5": (1.00, 5.00),
     "claude-sonnet-5": (2.00, 10.00),
     "mock": (0.0, 0.0),
+    # Groq published pricing (groq.com/pricing), per-million tokens. Groq's
+    # FREE tier is actually $0 -- but pricing it at $0 here would make the
+    # cost guard useless (BudgetExceeded never fires, every run "free"), so
+    # these are the PAID on-demand figures used as the estimate basis. A user
+    # who is knowingly on the free tier can override to (0, 0) via
+    # RAGPIPE_EVAL_PRICES; what they cannot get from us for free is a cost
+    # guard that silently stops guarding.
+    "openai/gpt-oss-120b": (0.15, 0.60),
+    "llama-3.3-70b-versatile": (0.59, 0.79),
+    "llama-3.1-8b-instant": (0.05, 0.08),
+    # OpenRouter default (see providers/llm/openrouter.py for why this model
+    # was chosen as the default). OpenRouter's per-model prices are set by
+    # each upstream provider and change frequently, and no live pricing feed
+    # was available while wiring this in -- verify at openrouter.ai/models
+    # before relying on this for a real budget and override via
+    # RAGPIPE_EVAL_PRICES if it has drifted.
+    "meta-llama/llama-3.1-8b-instruct": (0.02, 0.05),
 }
 
 PRICE_ENV_VAR = "RAGPIPE_EVAL_PRICES"
@@ -242,6 +259,145 @@ def check_preflight(estimate: CostEstimate, max_usd: float | None) -> None:
         raise BudgetExceeded(
             estimate.total_usd, max_usd, context="pre-flight estimate, before any call was made"
         )
+
+
+@dataclass
+class FeasibilityEstimate:
+    """Pre-flight wall-clock/quota estimate for a rate-limited run, so a
+    caller can hear "150 pairs needs ~11 days" before spending hours getting
+    throttled to find that out the slow way."""
+
+    n_samples: int
+    requests_per_sample: float
+    tokens_per_sample: float
+    total_requests: int
+    total_tokens: int
+    # Time actually spent issuing calls, bounded only by the per-minute
+    # ceilings. Distinct from `estimated_minutes`, which also counts the dead
+    # time spent waiting for a daily allowance to reset -- conflating the two
+    # reports "14 samples takes 24 hours" when it is 25 minutes of calling
+    # that happens to consume a whole day's quota.
+    active_minutes: float
+    estimated_minutes: float
+    limiting_factor: str
+    quota_days: float
+    fits_in_one_day: bool
+    daily_request_cap_hit: bool
+    daily_token_cap_hit: bool
+    assumptions: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def estimated_hours(self) -> float:
+        return self.estimated_minutes / 60.0
+
+    @property
+    def estimated_days(self) -> float:
+        return self.estimated_minutes / (60.0 * 24.0)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "n_samples": self.n_samples,
+            "total_requests": self.total_requests,
+            "total_tokens": self.total_tokens,
+            "estimated_minutes": round(self.estimated_minutes, 1),
+            "estimated_hours": round(self.estimated_hours, 2),
+            "estimated_days": round(self.estimated_days, 2),
+            "limiting_factor": self.limiting_factor,
+            "fits_in_one_day": self.fits_in_one_day,
+            "daily_request_cap_hit": self.daily_request_cap_hit,
+            "daily_token_cap_hit": self.daily_token_cap_hit,
+            "assumptions": self.assumptions,
+        }
+
+
+def estimate_run_feasibility(
+    n_samples: int,
+    *,
+    requests_per_sample: float = 9.0,
+    tokens_per_sample: float = 14_251.0,
+    requests_per_minute: int | None = None,
+    tokens_per_minute: int | None = None,
+    requests_per_day: int | None = None,
+    tokens_per_day: int | None = None,
+) -> FeasibilityEstimate:
+    """Estimate wall-clock duration and daily-cap feasibility for `n_samples`
+    under the given rate limits, BEFORE any call is made.
+
+    This is deliberately independent of `RateLimiter`: it does not simulate
+    call-by-call pacing, it computes the same two bottlenecks a real run
+    would hit --
+
+      * per-minute ceilings (RPM/TPM) bound how fast requests can go out at
+        all, so wall-clock time is `max(requests_needed / rpm,
+        tokens_needed / tpm)` minutes;
+      * per-day ceilings (RPD/TPD) bound how much can be done before the
+        provider simply refuses more for the day, regardless of how patient
+        the caller is willing to be.
+
+    Defaults (`requests_per_sample=9`, `tokens_per_sample=14251`) are this
+    project's own measured RAGAS generation+judge call pattern; override them
+    for a different pipeline/metric set.
+    """
+    total_requests = int(round(n_samples * requests_per_sample))
+    total_tokens = int(round(n_samples * tokens_per_sample))
+
+    minutes_candidates: dict[str, float] = {}
+    if requests_per_minute:
+        minutes_candidates["requests_per_minute"] = total_requests / requests_per_minute
+    if tokens_per_minute:
+        minutes_candidates["tokens_per_minute"] = total_tokens / tokens_per_minute
+
+    if minutes_candidates:
+        limiting_factor, active_minutes = max(minutes_candidates.items(), key=lambda kv: kv[1])
+    else:
+        limiting_factor, active_minutes = "unbounded", 0.0
+
+    daily_request_cap_hit = bool(requests_per_day and total_requests > requests_per_day)
+    daily_token_cap_hit = bool(tokens_per_day and total_tokens > tokens_per_day)
+
+    # If a daily cap is tighter than the per-minute pacing already implies,
+    # the run cannot finish faster than "however many days it takes to trickle
+    # the daily allowance out" -- stretch the estimate to reflect that instead
+    # of reporting a number nobody will actually see hit.
+    quota_days = 0.0
+    stretched: dict[str, float] = {limiting_factor: active_minutes}
+    if requests_per_day:
+        days = total_requests / requests_per_day
+        quota_days = max(quota_days, days)
+        stretched["requests_per_day"] = days * 24 * 60
+    if tokens_per_day:
+        days = total_tokens / tokens_per_day
+        quota_days = max(quota_days, days)
+        stretched["tokens_per_day"] = days * 24 * 60
+    limiting_factor, estimated_minutes = max(stretched.items(), key=lambda kv: kv[1])
+
+    return FeasibilityEstimate(
+        n_samples=n_samples,
+        requests_per_sample=requests_per_sample,
+        tokens_per_sample=tokens_per_sample,
+        total_requests=total_requests,
+        total_tokens=total_tokens,
+        active_minutes=round(active_minutes, 2),
+        estimated_minutes=estimated_minutes,
+        limiting_factor=limiting_factor,
+        quota_days=round(quota_days, 3),
+        fits_in_one_day=estimated_minutes <= 24 * 60 and not (
+            daily_request_cap_hit or daily_token_cap_hit
+        ),
+        daily_request_cap_hit=daily_request_cap_hit,
+        daily_token_cap_hit=daily_token_cap_hit,
+        assumptions={
+            "requests_per_minute": requests_per_minute,
+            "tokens_per_minute": tokens_per_minute,
+            "requests_per_day": requests_per_day,
+            "tokens_per_day": tokens_per_day,
+            "note": (
+                "heuristic pre-flight guess: assumes requests can be paced "
+                "back-to-back against the per-minute ceiling with no other "
+                "overhead, and that daily caps reset once every 24h"
+            ),
+        },
+    )
 
 
 @dataclass
