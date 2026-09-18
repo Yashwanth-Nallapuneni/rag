@@ -7,6 +7,11 @@ htmlcov/
 .env
 data/raw/
 data/processed/
+# The manifest defines the corpus (ids + checksums), so it is versioned:
+# a clone can re-fetch the identical 40 papers.
+!data/processed/
+data/processed/*
+!data/processed/corpus_manifest.json
 data/chroma/
 .DS_Store
 *.egg-info/
