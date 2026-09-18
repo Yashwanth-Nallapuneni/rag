@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+data/raw/
+data/processed/
+data/chroma/
+.DS_Store
+*.egg-info/
+dist/
+build/
+.ragpipe_cache/
+eval_results/*.json
+!eval_results/.gitkeep

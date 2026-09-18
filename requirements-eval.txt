@@ -1,0 +1,30 @@
+# RAGAS evaluation stack pins
+#
+# Why these pins exist:
+# `pip install ragas` (latest, 0.4.3) resolves to langchain-community 0.4.2
+# by default. ragas/llms/base.py (as shipped in ragas 0.4.3) does a
+# top-level `from langchain_community.chat_models.vertexai import ChatVertexAI`.
+# langchain-community 0.4.2 removed langchain_community/chat_models/vertexai.py
+# (it kept llms/embeddings/utilities vertexai shims, but dropped the chat
+# model shim), so `import ragas` raises:
+#   ModuleNotFoundError: No module named 'langchain_community.chat_models.vertexai'
+#
+# Fix: pin langchain-community back to 0.4.1, the last release that still
+# ships langchain_community/chat_models/vertexai.py. langchain-community
+# 0.4.1 requires langchain-core>=1.0.1,<2.0.0 (already satisfied by the
+# installed langchain-core 1.6.3) and pulls in a new dependency,
+# langchain-classic (installed automatically). No other package in the
+# existing stack (langchain, langchain-core, langchain_openai, langgraph,
+# openai, datasets, pydantic, torch, chromadb, sentence-transformers, ...)
+# needed to change version.
+
+ragas==0.4.3
+langchain==1.4.1
+langchain-core==1.6.3
+langchain-community==0.4.1
+langchain-classic==1.0.8
+langchain_openai==1.1.9
+langgraph==1.2.11
+openai==1.109.1
+datasets==5.0.1
+pydantic==2.13.5
