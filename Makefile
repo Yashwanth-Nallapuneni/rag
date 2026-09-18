@@ -2,7 +2,7 @@ VENV := .venv
 PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 
-.PHONY: help install corpus ingest index ask serve test test-all lint doctor config clean
+.PHONY: help install corpus ingest index ask serve bench bench-sweep test test-all lint doctor config clean
 
 help:
 	@grep -E '^[a-zA-Z-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "};{printf "  \033[36m%-12s\033[0m %s\n",$$1,$$2}'
@@ -32,6 +32,12 @@ config: ## show the resolved configuration
 
 doctor: ## check which providers are usable right now
 	PYTHONPATH=src $(PY) -m ragpipe.cli doctor
+
+bench: ## compare retrieval configurations (known-item diagnostic)
+	$(PY) scripts/bench_retrieval.py --per-family 50
+
+bench-sweep: ## sweep fusion weights
+	$(PY) scripts/bench_retrieval.py --sweep --per-family 40 --out eval_results/retrieval_sweep.json
 
 test: ## fast tests only (what the CI gate runs)
 	$(PY) -m pytest -q -m "not slow"

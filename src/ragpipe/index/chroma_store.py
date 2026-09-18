@@ -144,6 +144,18 @@ class ChromaStore:
         # rebuild in request order and silently drop ids that weren't found.
         return [by_id[cid] for cid in chunk_ids if cid in by_id]
 
+    def iter_chunks(self) -> list[Chunk]:
+        """All chunks, ordered by id for deterministic sparse-index builds."""
+        got = self._collection.get(include=["documents", "metadatas"])
+        ids = got.get("ids") or []
+        docs = got.get("documents") or []
+        metas = got.get("metadatas") or []
+        out = [
+            Chunk.from_store(cid, text or "", md or {})
+            for cid, text, md in zip(ids, docs, metas)
+        ]
+        return sorted(out, key=lambda c: c.chunk_id)
+
     def document_ids(self) -> list[str]:
         """Distinct doc_ids present in the collection."""
         got = self._collection.get(include=["metadatas"])

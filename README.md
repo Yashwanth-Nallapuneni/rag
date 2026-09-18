@@ -8,10 +8,10 @@ The point of this project is not the demo. It is the discipline around it:
 hybrid retrieval, cross-encoder reranking, enforced citations, and an
 evaluation harness that **gates CI on answer faithfulness**.
 
-> Status: Phase 3 of 6 complete. Ingestion, chunking, embedding, dense
-> retrieval, cited answers and a FastAPI service all work end to end.
-> Hybrid retrieval and reranking are Phase 4; the RAGAS CI gate is Phase 6.
-> 156 tests passing.
+> Status: Phase 4 of 6 complete. Ingestion, chunking, hybrid BM25 + vector
+> retrieval, cross-encoder reranking, cited answers and a FastAPI service all
+> work end to end. Citation enforcement is Phase 5; the RAGAS CI gate is
+> Phase 6. 199 tests passing.
 
 ## Why the provider abstraction
 
@@ -34,6 +34,23 @@ make ask Q="what problem does self-attention solve?"
 make serve       # API on :8000, interactive docs at /docs
 make test        # 156 offline tests
 ```
+
+## Retrieval
+
+Dense (BGE embeddings over ChromaDB) and sparse (BM25) each propose 30
+candidates; reciprocal rank fusion merges them; a cross-encoder reranks that
+shortlist down to the 5 passages the model sees. Wide-then-narrow matters: a
+reranker can only reorder what it is given, so a passage dense retrieval put
+12th can never reach first place if the shortlist was only 5 long.
+
+Both indexes are built from the **same** source -- the sparse index reads the
+vector store's contents, not the chunk file -- because two independently built
+indexes drift, and a BM25 hit for a chunk the store lacks yields a citation
+whose click-through 404s.
+
+Measured before/after numbers, and why the most eye-catching number in them is
+a trap worth understanding, are in
+[`docs/retrieval_findings.md`](docs/retrieval_findings.md).
 
 ## Citations
 

@@ -43,6 +43,16 @@ class VectorStore(Protocol):
 
     def count(self) -> int: ...
 
+    def iter_chunks(self) -> list[Chunk]:
+        """Every chunk in the collection.
+
+        The sparse index is built from this rather than from the chunk file,
+        so the two indexes cannot drift apart: a BM25 hit is always a chunk
+        the store can also return, which is what keeps citation
+        click-through from 404ing.
+        """
+        ...
+
     def document_ids(self) -> list[str]:
         """Distinct source documents in the collection. Needed so /stats can
         report corpus coverage without re-reading the chunk file."""
