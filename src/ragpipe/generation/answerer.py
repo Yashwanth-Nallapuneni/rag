@@ -17,13 +17,13 @@ from typing import Any, Protocol
 
 from ..config import Settings
 from ..index.base import VectorStore
-from ..logging_utils import get_logger, timed
+from ..logging_utils import get_logger
 from ..prompts import load_prompt
-from ..providers import LLMRequest, get_llm
+from ..providers import get_llm
 from ..retrieval import Retriever, get_retriever
-from ..schemas import Answer, AnswerStatus, ClaimVerdict, RetrievedChunk
-from .citations import resolve_citations, split_claims
-from .context import RenderedContext, render_context
+from ..schemas import Answer, AnswerStatus, Citation, ClaimVerdict, RetrievedChunk
+from .context import RenderedContext
+from .graph import build_graph
 
 log = get_logger(__name__)
 
@@ -57,6 +57,9 @@ class Answerer:
         self.sentinel = self.prompt.metadata.get(
             "refusal_sentinel", DEFAULT_REFUSAL_SENTINEL
         )
+        # Compiled once: the graph IS the pipeline, not a decorative parallel
+        # path, so `answer()` below only invokes it.
+        self._graph = build_graph(self)
 
     # -- helpers --------------------------------------------------------
     def _refuse(
@@ -81,120 +84,29 @@ class Answerer:
             config_fingerprint=self.settings.fingerprint(),
         )
 
-    # -- main -----------------------------------------------------------
-    def answer(
+    def _finalize(
         self,
         question: str,
-        k: int | None = None,
-        where: dict[str, Any] | None = None,
+        text: str,
+        citations: list[Citation],
+        contexts: list[RetrievedChunk],
+        verdicts: list[ClaimVerdict],
+        timings: dict[str, float],
+        usage: dict[str, int],
+        unknown: list[int],
+        uncited: list[str],
     ) -> Answer:
-        timings: dict[str, float] = {}
-        top_k = k or self.settings.retrieval.top_k
-
-        with timed(timings, "retrieval"):
-            candidates = self.retriever.retrieve(question, where=where)
-        contexts = candidates[:top_k]
-
-        if not contexts:
-            return self._refuse(
-                question,
-                AnswerStatus.REFUSED_NO_CONTEXT,
-                "retrieval returned no passages above threshold",
-                [],
-                timings,
-            )
-
-        # Relevance gate, checked BEFORE generation so an off-topic question
-        # costs nothing to refuse. Grounding and relevance are different
-        # properties: a faithful quotation of an irrelevant passage passes
-        # every citation check and still fails the user.
-        gate = self.settings.citation.min_relevance_score
-        if self.settings.citation.enforce and gate is not None:
-            scored = [c.rerank_score for c in contexts if c.rerank_score is not None]
-            if scored and max(scored) < gate:
-                return self._refuse(
-                    question,
-                    AnswerStatus.REFUSED_NO_CONTEXT,
-                    f"best passage scored {max(scored):.2f} for relevance to this "
-                    f"question, below the {gate:.2f} threshold: the corpus does "
-                    f"not appear to cover it",
-                    contexts,
-                    timings,
-                )
-
-        with timed(timings, "context"):
-            rendered = render_context(
-                contexts,
-                self.settings.generation.max_context_tokens,
-                include_locators=self.settings.generation.include_locators,
-            )
-        if rendered.dropped:
-            log.info(
-                "context budget dropped %d of %d passages",
-                len(rendered.dropped),
-                len(contexts),
-            )
-
-        system, user = self.prompt.render(context=rendered.text, question=question)
-
-        with timed(timings, "generation"):
-            response = self.llm.complete(
-                LLMRequest(
-                    system=system,
-                    user=user,
-                    task="answer",
-                    temperature=self.settings.llm.temperature,
-                    max_tokens=self.settings.llm.max_tokens,
-                )
-            )
-
-        text = response.text.strip()
-        if self.sentinel and self.sentinel in text:
-            return self._refuse(
-                question,
-                AnswerStatus.REFUSED_BY_MODEL,
-                "model reported the passages do not support an answer",
-                rendered.used,
-                timings,
-            )
-
-        citations, unknown = resolve_citations(text, rendered)
-        claims = split_claims(text)
-        uncited = [c.text for c in claims if c.uncited]
-
-        verdicts: list[ClaimVerdict] = []
-        supported_ratio = 1.0
-        if self.verifier is not None:
-            with timed(timings, "verification"):
-                verdicts, supported_ratio = self.verifier.verify(
-                    text, rendered, question
-                )
-            if (
-                self.settings.citation.enforce
-                and supported_ratio < self.settings.citation.min_supported_ratio
-            ):
-                return self._refuse(
-                    question,
-                    AnswerStatus.REFUSED_LOW_SUPPORT,
-                    f"only {supported_ratio:.0%} of claims are supported by the "
-                    f"retrieved passages (threshold "
-                    f"{self.settings.citation.min_supported_ratio:.0%})",
-                    rendered.used,
-                    timings,
-                    verdicts,
-                )
-
         answer = Answer(
             question=question,
             text=text,
             status=AnswerStatus.ANSWERED,
             citations=citations,
-            contexts=rendered.used,
+            contexts=contexts,
             claim_verdicts=verdicts,
             prompt_version=self.prompt.id,
             model=f"{self.llm.name}:{self.llm.model}",
             timings_ms=timings,
-            usage=response.usage,
+            usage=usage,
             config_fingerprint=self.settings.fingerprint(),
         )
         # Surfaced, not swallowed: a marker citing a passage that was never
@@ -209,6 +121,21 @@ class Answerer:
             answer.usage["claims_checked"] = len(verdicts)
             answer.usage["claims_supported"] = sum(1 for v in verdicts if v.supported)
         return answer
+
+    # -- main -----------------------------------------------------------
+    def answer(
+        self,
+        question: str,
+        k: int | None = None,
+        where: dict[str, Any] | None = None,
+    ) -> Answer:
+        """Run the graph. This IS the pipeline -- retrieve, gate, build
+        context, generate, parse citations, verify, finalize-or-refuse --
+        not a wrapper around a separate hand-rolled path."""
+        result = self._graph.invoke(
+            {"question": question, "k": k, "where": where, "timings_ms": {}}
+        )
+        return result["answer"]
 
 
 def build_answerer(settings: Settings) -> Answerer:

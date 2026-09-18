@@ -1,5 +1,8 @@
 # ragpipe — a production-grade RAG system
 
+[![tests](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/tests.yml/badge.svg)](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/tests.yml)
+[![answer quality](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/eval.yml/badge.svg)](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/eval.yml)
+
 Ask questions over an arXiv ML corpus and get answers that **cite the exact
 passage they came from** — or an explicit refusal when the retrieved passages
 don't support an answer.
@@ -8,10 +11,14 @@ The point of this project is not the demo. It is the discipline around it:
 hybrid retrieval, cross-encoder reranking, enforced citations, and an
 evaluation harness that **gates CI on answer faithfulness**.
 
-> Status: Phase 5 of 6 complete. Ingestion, hybrid retrieval, reranking,
-> enforced citations, a FastAPI service and a Streamlit demo all work end to
-> end. The RAGAS evaluation harness and CI gate are Phase 6.
-> 233 tests passing.
+> **Status: Phase 6 of 6 in progress.** Ingestion, hybrid retrieval,
+> reranking, enforced citations, a FastAPI service and a Streamlit demo all
+> work end to end (233 tests). The golden dataset, RAGAS harness and CI
+> quality gate are being built now.
+>
+> Numbers marked **pending measurement** below are not yet measured. They stay
+> blank until a real evaluation run produces them — an estimated number in
+> this README would make every other number in it worthless.
 
 ## Why the provider abstraction
 
@@ -35,6 +42,54 @@ make serve       # API on :8000, interactive docs at /docs
 make ui          # Streamlit demo on :8501
 make test        # 156 offline tests
 ```
+
+## The problem this solves
+
+Ask a question of a document collection and a typical RAG system gives you a
+fluent paragraph with no way to tell whether it is true. It will answer
+confidently when the documents say nothing on the subject, because nothing in
+the pipeline is checking.
+
+This system is built so that every answer is either **traceable to an exact
+passage** or **explicitly refused**:
+
+- Each sentence carries a citation marker resolving to one indexed chunk, and
+  `GET /chunk/{id}` returns that chunk's full text — so a reader can land on
+  the paragraph a claim came from.
+- Claims are verified against the passage they cite *after* generation. An
+  answer whose claims are not supported is refused rather than shipped.
+- Relevance is gated separately from grounding, because a faithful quotation of
+  an irrelevant passage passes every citation check and still fails the user.
+- The evaluation harness measures this, and **CI fails the build when answer
+  faithfulness regresses** — so the property is enforced continuously, not
+  asserted once in a README.
+
+## Architecture
+
+Three diagrams — query path, ingestion path, evaluation path — in
+[`docs/architecture.md`](docs/architecture.md).
+
+Orchestration is a LangGraph state machine: `retrieve → relevance_gate →
+build_context → generate → parse_citations → verify → finalize`, with
+conditional edges routing to a terminal `refuse` node at four distinct points.
+
+## Results
+
+| | |
+|---|---|
+| Documents / chunks | 40 arXiv papers, 1054 chunks |
+| Chunks carrying a page number | 100% |
+| Chunks carrying a section | 98.8% |
+| Adjacent chunks sharing overlap text | 97.9% (mean 85 words) |
+| BM25 vs dense on exact identifiers (R@1) | **0.300 vs 0.060** |
+| Reranking lift on a weak first pass (R@1) | **0.256 → 0.483 (+89%)** |
+| Faithfulness (RAGAS) | *pending measurement* |
+| Faithfulness before/after reranking | *pending measurement* |
+| Answer relevance / context precision / recall | *pending measurement* |
+| Refusal accuracy on the golden set | *pending measurement* |
+
+Retrieval numbers and the reason the most eye-catching one in them is a trap:
+[`docs/retrieval_findings.md`](docs/retrieval_findings.md).
 
 ## Retrieval
 

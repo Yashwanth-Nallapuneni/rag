@@ -1,0 +1,46 @@
+name: tests
+
+# Fast, free gate. Runs on every PR and on pushes to main. Needs no secret
+# and no network beyond pip/PyPI, because the whole offline suite runs
+# against the deterministic `mock` LLM/embedder providers (see README:
+# "Why the provider abstraction"). This is what catches ordinary code
+# regressions; answer-quality regressions are a separate, slower gate
+# (see eval.yml) because they need the real corpus, index, and a judge LLM.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least-privilege default; this workflow only reads the repo and writes logs.
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint (ruff)
+        run: ruff check src tests scripts
+
+      - name: Fast offline test suite (233 tests, no API key, no model downloads)
+        # `-m "not slow"` excludes tests that download real model weights or
+        # hit the network; those are covered separately (make test-all) and
+        # are not required for this fast gate.
+        run: python -m pytest -q -m "not slow"

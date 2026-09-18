@@ -1,0 +1,334 @@
+name: eval
+
+# The answer-quality gate. Spec requirement:
+#   "Wire the evaluation script into your CI pipeline. Every pull request
+#    triggers an automatic evaluation run against the golden dataset. If
+#    quality (faithfulness score) drops below a defined threshold, the
+#    build fails."
+#
+# This is a separate workflow from tests.yml on purpose: it needs a real
+# corpus, a real vector index, and (unlike the offline test suite, which
+# runs entirely on the deterministic `mock` LLM) a real judge LLM behind
+# OPENAI_API_KEY, so it is slower and costs real money per run. Splitting
+# it out keeps the free/fast tests.yml badge green independently of this
+# one, and keeps this one's badge meaning something specific: answer
+# quality, not "tests passed".
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sample_size:
+        description: "Number of golden-dataset questions to evaluate"
+        required: false
+        default: "20"
+      judge_model:
+        description: "LLM used as the RAGAS judge"
+        required: false
+        default: "gpt-4o-mini"
+      max_usd:
+        description: "Hard spending cap passed to --max-usd"
+        required: false
+        default: "1.00"
+
+permissions:
+  contents: read
+  # Needed only for the "post metric table as a PR comment" step. A
+  # same-repo PR gets a token with this permission; a fork PR's token is
+  # forced read-only by GitHub regardless of this block, which is exactly
+  # why the comment step below is wrapped to fail soft instead of failing
+  # the job.
+  pull-requests: write
+
+concurrency:
+  group: eval-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '20' }}
+  JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'gpt-4o-mini' }}
+  MAX_USD: ${{ github.event.inputs.max_usd || '1.00' }}
+  DATASET_PATH: eval/golden_dataset.jsonl
+  BASELINE_JSON: eval_results/baseline.json
+  SUMMARY_TXT: eval_results/ci_gate_summary.txt
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- loud failure on a missing secret -----------------------------
+      # This MUST run before anything else spends CI minutes, and it must
+      # be an unconditional job failure. The alternative -- silently
+      # falling back to the mock judge, or skipping the eval step -- would
+      # let a PR merge with a green "quality" badge despite no real
+      # evaluation having happened, which is exactly the false claim the
+      # spec warns against. A missing secret is a repo misconfiguration,
+      # not a reason to look green.
+      - name: Require OPENAI_API_KEY
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY secret is not set. The answer-quality gate cannot run without a real judge model -- add it under Settings > Secrets and variables > Actions > OPENAI_API_KEY. Refusing to pass by silently substituting the mock judge, since that would report a quality score that was never actually measured."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-eval.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-eval.txt
+
+      # --- cache keys ------------------------------------------------------
+      # Computed once so every cache step below (and the humans reading a
+      # run's logs) agree on what changed. Each key is scoped as narrowly as
+      # the spec asks for, so an unrelated config edit (say, a threshold
+      # bump) doesn't needlessly evict a 4-minute corpus fetch or a model
+      # download.
+      - name: Compute cache keys
+        id: keys
+        run: |
+          python - <<'PY'
+          import hashlib, os, pathlib
+          import yaml
+
+          cfg = yaml.safe_load(open("config/default.yaml"))
+
+          # HF cache key: only the two model names that actually determine
+          # what gets downloaded into ~/.cache/huggingface.
+          model_blob = f"{cfg['embeddings']['model']}|{cfg['rerank']['model']}"
+          hf_hash = hashlib.sha256(model_blob.encode()).hexdigest()[:16]
+
+          # Corpus key: the manifest is the versioned source of truth for
+          # which papers data/raw should contain (see .gitignore comment).
+          manifest_bytes = pathlib.Path("data/processed/corpus_manifest.json").read_bytes()
+          manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()[:16]
+
+          # Index key: manifest hash (what got chunked/embedded) PLUS the
+          # ingestion/chunking config (how it got chunked/embedded) -- a
+          # chunk_size or chunk_overlap edit must invalidate the index even
+          # though the manifest didn't change.
+          idx_blob = yaml.dump(
+              {"chunking": cfg["chunking"], "ingest": cfg["ingest"]}, sort_keys=True
+          )
+          idx_hash = hashlib.sha256(idx_blob.encode()).hexdigest()[:16]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"hf_key=hf-models-{hf_hash}\n")
+              fh.write(f"corpus_key=corpus-{manifest_hash}\n")
+              fh.write(f"index_key=index-{manifest_hash}-{idx_hash}\n")
+          PY
+
+      # --- model weights (BGE embedder + cross-encoder reranker) --------
+      - name: Cache HuggingFace model weights
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/torch/sentence_transformers
+          key: ${{ steps.keys.outputs.hf_key }}
+
+      # --- corpus (data/raw is gitignored; only the manifest is versioned) --
+      - name: Cache corpus (data/raw)
+        id: cache-corpus
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: ${{ steps.keys.outputs.corpus_key }}
+
+      - name: Fetch corpus (cache miss)
+        if: steps.cache-corpus.outputs.cache-hit != 'true'
+        # Deliberately not parallelised: fetch_corpus.py respects arXiv's
+        # ~1 req/3s rate-limit policy. ~40 papers -> ~4 minutes. This only
+        # runs when the manifest-keyed cache above misses (first run, or a
+        # corpus change), not on every PR.
+        run: python scripts/fetch_corpus.py --count 40
+
+      # --- chunk + index (rebuild is cheap-ish; only pay it on a real miss) -
+      - name: Cache chunked corpus + vector index
+        id: cache-index
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/chroma
+            data/processed/chunks.jsonl
+          key: ${{ steps.keys.outputs.index_key }}
+
+      - name: Ingest + index (cache miss)
+        if: steps.cache-index.outputs.cache-hit != 'true'
+        # The Makefile's PY/PIP vars default to .venv/bin/*, matching local
+        # dev (`make install` creates .venv). CI already installed
+        # dependencies straight into the setup-python interpreter via pip
+        # above, so we override PY here instead of creating a redundant venv.
+        run: |
+          make ingest PY=python
+          make index PY=python
+
+      # --- baseline for regression comparison ----------------------------
+      # GitHub Actions caches created on the default branch are visible to
+      # PR branches via restore-keys prefix matching, so we don't need to
+      # push anything back to the repo to carry a "last known good on main"
+      # result forward -- we just cache the eval result itself. The lookup
+      # key intentionally never matches (it's unique per run); the
+      # restore-keys prefix is what finds the most recently saved baseline.
+      # Caveat, documented here and in .github/workflows/README.md: GitHub
+      # evicts caches after ~7 days of no access or once the repo's cache
+      # quota is exceeded, so a long-quiet repo may start a PR with no
+      # baseline -- handled gracefully by ci_gate.py (skip, don't fail).
+      - name: Restore baseline eval result (from latest main push, if any)
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.BASELINE_JSON }}
+          key: eval-baseline-nomatch-${{ github.run_id }}
+          restore-keys: |
+            eval-baseline-
+
+      # NOTE on the --out flag: scripts/run_eval.py's own docstring says
+      # --out is currently "an unused placeholder kept for interface
+      # symmetry" -- the real result path is chosen internally by
+      # run_evaluation() as eval_results/eval_<timestamp>_<fingerprint>.json
+      # and printed as "Result written to: <path>". So we don't pass --out
+      # (it would silently do nothing) and instead capture that path from
+      # stdout below. If a future run_eval.py makes --out authoritative,
+      # this parsing step becomes a no-op simplification, not a breakage.
+      - name: Run evaluation against the golden dataset
+        id: run_eval
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set +e
+          mkdir -p eval_results
+          python scripts/run_eval.py \
+            --dataset "$DATASET_PATH" \
+            --sample-size "$SAMPLE_SIZE" \
+            --judge-model "$JUDGE_MODEL" \
+            --max-usd "$MAX_USD" \
+            --yes 2>&1 | tee eval_results/run_eval.log
+          run_eval_exit=${PIPESTATUS[0]}
+          set -e
+          result_path=$(grep -m1 '^Result written to: ' eval_results/run_eval.log | sed 's/^Result written to: //')
+          echo "result_path=$result_path" >> "$GITHUB_OUTPUT"
+          echo "run_eval_exit=$run_eval_exit" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      # --- gate: never let a failure here skip artifact upload / PR comment -
+      # ci_gate.py re-checks thresholds independently of run_eval.py's own
+      # exit code (which conflates "ran but failed a threshold" with "ran
+      # fine") and additionally does the regression-vs-baseline check.
+      # If run_eval.py produced no result path at all (crashed, refused to
+      # run over budget, or the --yes-less interactive prompt was aborted),
+      # we deliberately point ci_gate.py at a path that doesn't exist so it
+      # exits 3 (bad input) -- a run that produced nothing must never be
+      # scored as a pass.
+      - name: Compare against thresholds and baseline
+        id: gate
+        run: |
+          set +e
+          RESULT_PATH="${{ steps.run_eval.outputs.result_path }}"
+          if [ -z "$RESULT_PATH" ]; then
+            echo "::warning::run_eval.py (exit ${{ steps.run_eval.outputs.run_eval_exit }}) did not report a result path -- no evaluation output was produced."
+            RESULT_PATH="eval_results/__no_result_was_produced__.json"
+          fi
+          echo "result_json=$RESULT_PATH" >> "$GITHUB_OUTPUT"
+          BASELINE_FLAG=""
+          if [ -f "$BASELINE_JSON" ]; then
+            BASELINE_FLAG="--baseline $BASELINE_JSON"
+          fi
+          python scripts/ci_gate.py "$RESULT_PATH" $BASELINE_FLAG --max-regression 0.02 | tee "$SUMMARY_TXT"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Upload eval results as build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-${{ github.run_id }}
+          path: |
+            ${{ steps.gate.outputs.result_json }}
+            eval_results/*.txt
+            eval_results/run_eval.log
+            eval_results/baseline.json
+          if-no-files-found: warn
+          retention-days: 90
+
+      # Only persist a new baseline from a successful, non-regressed run on
+      # main -- we don't want a bad or regressed main push to become the
+      # new "acceptable" floor for the next PR's regression check.
+      #
+      # actions/cache extracts a saved archive back to the exact relative
+      # path(s) it was saved from, so the save and restore steps must agree
+      # on a literal, fixed path -- run_eval.py's actual output filename is
+      # timestamped/fingerprinted, so we copy it to the fixed BASELINE_JSON
+      # path first rather than caching the timestamped file directly.
+      - name: Prepare baseline candidate at a fixed path
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.gate.outputs.exit_code == '0'
+        run: cp "${{ steps.gate.outputs.result_json }}" "$BASELINE_JSON"
+
+      - name: Save this run as the new baseline (main only, gate passed)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.gate.outputs.exit_code == '0'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.BASELINE_JSON }}
+          key: eval-baseline-${{ github.sha }}
+
+      - name: Post metric table as a PR comment
+        if: github.event_name == 'pull_request' && always()
+        continue-on-error: true # fork PRs get a read-only token; comment is best-effort, never the pass/fail signal
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body;
+            try {
+              body = fs.readFileSync(process.env.SUMMARY_TXT, 'utf8');
+            } catch (e) {
+              body = 'Answer-quality gate ran but no summary file was produced (see workflow logs).';
+            }
+            const marker = '<!-- ragpipe-eval-gate-comment -->';
+            const commentBody = `${marker}\n### Answer-quality gate\n\n\`\`\`\n${body}\n\`\`\`\n`;
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              const existing = comments.find(c => c.body && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body: commentBody,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: commentBody,
+                });
+              }
+            } catch (err) {
+              // Expected on PRs from forks (read-only GITHUB_TOKEN). The
+              // quality verdict itself is enforced by the next step, not
+              // by this comment, so we only log and move on.
+              core.warning(`Could not post PR comment (likely a fork PR with a read-only token): ${err.message}`);
+            }
+
+      - name: Fail the build if the quality gate did not pass
+        if: steps.gate.outputs.exit_code != '0'
+        run: |
+          echo "::error::Answer-quality gate failed with exit code ${{ steps.gate.outputs.exit_code }} (1 = below threshold, 2 = regression vs. baseline, 3 = missing/malformed results). See the job summary and the eval-results artifact for the metric table."
+          exit ${{ steps.gate.outputs.exit_code }}
