@@ -345,6 +345,11 @@ def run_evaluation(
     judge_provider: str | None = None,
     progress: bool = True,
     prices: dict[str, tuple[float, float]] | None = None,
+    # Defaults sized for a rate-limited judge. RAGAS's own default is 180s
+    # with many workers, which guarantees timeouts behind a token-per-minute
+    # ceiling: the jobs queue behind our limiter and every one expires.
+    ragas_timeout_s: int = 900,
+    ragas_max_workers: int = 1,
     dry_run: bool = False,
 ) -> dict[str, Any]:
     """Run the full harness: generate -> refusal-accuracy -> RAGAS -> write.
@@ -374,10 +379,19 @@ def run_evaluation(
     else:
         selected = list(all_pairs)
 
-    gen_model_label = f"{settings.llm.provider}:{settings.llm.model or 'default'}"
-    judge_model_label = (
-        f"{judge_provider or settings.llm.provider}:{judge_model or settings.llm.model or 'default'}"
-    )
+    # Resolve the provider's real default model rather than labelling it
+    # "default": that placeholder has no price entry and tells a reader of the
+    # result file nothing about which model produced the numbers.
+    from ..providers import default_model_for
+
+    gen_provider = settings.llm.provider
+    gen_model = settings.llm.model or default_model_for(gen_provider) or "default"
+    jdg_provider = judge_provider or gen_provider
+    jdg_model = judge_model or (
+        settings.llm.model if judge_provider is None else None
+    ) or default_model_for(jdg_provider) or "default"
+    gen_model_label = f"{gen_provider}:{gen_model}"
+    judge_model_label = f"{jdg_provider}:{jdg_model}"
 
     estimate = estimate_run_cost(
         len(selected),
@@ -477,9 +491,26 @@ def run_evaluation(
 
             dataset = EvaluationDataset.from_list(graded_rows)
 
+            # RAGAS fans its jobs out concurrently and times each one out
+            # (180s by default). Against a rate-limited judge our limiter
+            # serialises those jobs, so every one of them sat in the queue
+            # past the deadline and came back as TimeoutError -- producing
+            # NaN for every metric on a judge that was working fine. One
+            # worker plus a generous timeout matches RAGAS's concurrency to
+            # what a token-capped endpoint can actually serve.
+            run_config = None
+            try:
+                from ragas.run_config import RunConfig
+
+                run_config = RunConfig(
+                    timeout=ragas_timeout_s, max_workers=ragas_max_workers
+                )
+            except Exception as exc:  # noqa: BLE001 - optional across versions
+                log.warning("could not build a ragas RunConfig (%s); using defaults", exc)
+
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", DeprecationWarning)
-                eval_out = evaluate(
+                eval_kwargs: dict[str, Any] = dict(
                     dataset=dataset,
                     metrics=metric_objs,
                     llm=ragas_llm,
@@ -487,6 +518,9 @@ def run_evaluation(
                     raise_exceptions=False,
                     show_progress=progress,
                 )
+                if run_config is not None:
+                    eval_kwargs["run_config"] = run_config
+                eval_out = evaluate(**eval_kwargs)
 
             df = eval_out.to_pandas()
             aggregate = {
@@ -515,13 +549,28 @@ def run_evaluation(
                 # NaN for every score instead of raising. Reporting that as
                 # "computed" would be exactly the false claim the user
                 # forbade -- every number here would silently be nothing.
+                # The explanation must name the judge that actually ran. An
+                # earlier version asserted "expected with the offline mock
+                # judge" unconditionally, which was simply false whenever a
+                # real judge was used -- and a wrong diagnosis in the result
+                # file is worse than none.
+                is_mock_judge = judge_model_label.startswith("mock")
+                cause = (
+                    "the offline mock judge was used, and it was never designed to "
+                    "answer RAGAS's own structured-output prompts"
+                    if is_mock_judge
+                    else (
+                        f"the judge ({judge_model_label}) either timed out or returned "
+                        "output RAGAS could not parse. On a rate-limited endpoint "
+                        "check stderr for 'TimeoutError' -- RAGAS's per-job deadline "
+                        f"is currently {ragas_timeout_s}s with "
+                        f"{ragas_max_workers} worker(s). Otherwise look for "
+                        "'RagasOutputParserException' / 'failed to parse the output'"
+                    )
+                )
                 ragas_result["reason"] = (
                     "ragas.evaluate() ran without raising but every metric came back "
-                    "NaN for every sample -- the judge never produced output RAGAS "
-                    "could parse (see stderr for 'RagasOutputParserException' / "
-                    "'failed to parse the output'). Expected with the offline mock "
-                    "judge, which was never designed to answer RAGAS's own "
-                    "structured-output prompts. Metrics are UNAVAILABLE, not zero."
+                    f"NaN for every sample: {cause}. Metrics are UNAVAILABLE, not zero."
                 )
                 ragas_result["per_sample"] = per_sample
                 ragas_result["n_graded"] = len(graded_rows)
@@ -566,6 +615,8 @@ def run_evaluation(
         "generation_model": gen_model_label,
         "judge_model": judge_model_label,
         "judge_is_generation_model": judge_model_label == gen_model_label,
+        "ragas_timeout_s": ragas_timeout_s,
+        "ragas_max_workers": ragas_max_workers,
         "dataset_path": str(settings.evaluation.dataset),
         # Stamped on every result so an unverified smoke test is self-labelling
         # and can never be quoted later as a measured number.

@@ -45,6 +45,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument("--out", default=None, help="unused placeholder kept for interface symmetry -- result path is chosen by run_evaluation and printed")
     p.add_argument("--compare", default=None, metavar="OTHER_RESULTS_JSON", help="print a before/after delta table against this earlier result file, then exit")
+    p.add_argument("--ragas-timeout", type=int, default=900,
+                   help="RAGAS per-job deadline in seconds (default 900). RAGAS's own "
+                        "default of 180s guarantees timeouts behind a rate-limited "
+                        "judge, because jobs queue behind the client-side limiter")
+    p.add_argument("--ragas-workers", type=int, default=1,
+                   help="RAGAS concurrency (default 1, matched to a token-capped endpoint)")
     p.add_argument("--dry-run", action="store_true", help="print the pre-flight cost estimate and sample count; call nothing")
     p.add_argument("--yes", action="store_true", help="skip the interactive spend confirmation")
     p.add_argument("--rerank", dest="rerank", action="store_true", default=None)
@@ -90,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         judge_model=args.judge_model,
         judge_provider=args.judge_provider,
         progress=not args.quiet,
+        ragas_timeout_s=args.ragas_timeout,
+        ragas_max_workers=args.ragas_workers,
         dry_run=True,
     )
 
@@ -133,6 +141,8 @@ def main(argv: list[str] | None = None) -> int:
             judge_model=args.judge_model,
             judge_provider=args.judge_provider,
             progress=not args.quiet,
+            ragas_timeout_s=args.ragas_timeout,
+            ragas_max_workers=args.ragas_workers,
         )
     except BudgetExceeded as exc:
         print(f"\nABORTED MID-RUN: {exc}", file=sys.stderr)

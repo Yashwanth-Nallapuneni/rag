@@ -16,6 +16,8 @@ from the function this replaces. The graph is compiled once per `Answerer`
 
 from __future__ import annotations
 
+import re
+
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -23,6 +25,10 @@ from langgraph.graph import END, START, StateGraph
 from ..logging_utils import get_logger, timed
 from ..providers import LLMRequest
 from ..schemas import AnswerStatus, Citation, ClaimVerdict, RetrievedChunk
+from .citations import (
+    has_suspect_markers,
+    normalize_citation_markers,
+)
 from .citations import resolve_citations, split_claims
 from .context import RenderedContext, render_context
 
@@ -30,6 +36,10 @@ if TYPE_CHECKING:
     from .answerer import Answerer
 
 log = get_logger(__name__)
+
+# Cheap presence check so the "unrecognised marker format" warning only fires
+# when no usable marker survived normalisation.
+_MARKER_PRESENT_RE = re.compile(r"\[S\d{1,3}\]")
 
 
 class GraphState(TypedDict, total=False):
@@ -162,7 +172,17 @@ def _make_generate(answerer: "Answerer"):
                 )
             )
 
-        text = response.text.strip()
+        # Normalise citation markers before anything downstream reads them.
+        # Groq's gpt-oss-120b cites as 【S1】 (CJK brackets), which the ASCII
+        # parser cannot see -- left unnormalised, every answer looks uncited
+        # and gets refused despite being correctly attributed.
+        text = normalize_citation_markers(response.text).strip()
+        if not _MARKER_PRESENT_RE.search(text) and has_suspect_markers(text):
+            log.warning(
+                "answer cites in an unrecognised marker format; citations will "
+                "not resolve. First 160 chars: %r",
+                text[:160],
+            )
         update: dict[str, Any] = {
             "response_text": text,
             "usage": dict(response.usage),

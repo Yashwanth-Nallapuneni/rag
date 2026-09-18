@@ -174,3 +174,45 @@ def test_email_addresses_do_not_fragment_claims():
 )
 def test_dotted_tokens_are_not_sentence_boundaries(text, expected):
     assert len(split_claims(text)) == expected
+
+
+def test_fullwidth_cjk_brackets_are_normalised():
+    """Regression, found only by running a real model: Groq's gpt-oss-120b
+    cites as 【S1】 with CJK fullwidth brackets. The ASCII-only parser saw no
+    citations at all, so every sentence counted as uncited, support came out
+    at 0%, and three out of three answerable questions were refused while the
+    answers were correct and properly attributed."""
+    from ragpipe.generation.citations import normalize_citation_markers
+
+    text = "Eight layers are bidirectional, i.e. 25% of the stack 【S1】."
+    assert normalize_citation_markers(text).endswith("[S1].")
+    assert extract_markers(text) == [1]
+    claims = split_claims(text)
+    assert len(claims) == 1 and claims[0].markers == [1]
+
+
+@pytest.mark.parametrize(
+    "opener,closer",
+    [("【", "】"), ("［", "］"), ("〔", "〕")],
+)
+def test_bracket_variants_resolve(opener, closer):
+    assert extract_markers(f"grounded {opener}S3{closer}") == [3]
+
+
+def test_normalisation_is_narrow_enough_not_to_touch_quoted_text():
+    """Only a bracket pair wrapping an S-marker is rewritten; a fullwidth
+    bracket in quoted source text must survive untouched."""
+    from ragpipe.generation.citations import normalize_citation_markers
+
+    text = "The paper writes 【注】 in its margin notes. [S1]"
+    assert "【注】" in normalize_citation_markers(text)
+
+
+def test_suspect_marker_detection():
+    """A model citing in a shape we do not accept must be detectable, since
+    the symptom is a 100% refusal rate that looks like a retrieval fault."""
+    from ragpipe.generation.citations import has_suspect_markers
+
+    assert has_suspect_markers("text 【1】")
+    assert has_suspect_markers("text (S2)")
+    assert not has_suspect_markers("proper [S1] citation")

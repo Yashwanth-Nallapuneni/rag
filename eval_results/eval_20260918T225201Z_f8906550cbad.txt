@@ -1,0 +1,21 @@
+RAGAS evaluation -- 2026-09-18T22:52:01+00:00
+config fingerprint: f8906550cbad
+generation model:   groq:openai/gpt-oss-120b
+judge model:        groq:llama-3.3-70b-versatile
+dataset:            /private/tmp/claude-501/-Users-yashwanth-Desktop-claude-rag/c6f06a04-a598-4d3c-b718-68fd260190fc/scratchpad/smoke_golden.jsonl (2/8 sampled)
+
+RAGAS metrics:
+  UNAVAILABLE: ragas.evaluate() ran without raising but every metric came back NaN for every sample: the judge (groq:llama-3.3-70b-versatile) either timed out or returned output RAGAS could not parse. On a rate-limited endpoint check stderr for 'TimeoutError' -- RAGAS's per-job deadline is currently 900s with 1 worker(s). Otherwise look for 'RagasOutputParserException' / 'failed to parse the output'. Metrics are UNAVAILABLE, not zero.
+
+Refusal accuracy (computed by us, not RAGAS):
+  total=2  accuracy=0.5  precision=0.0  recall=None  f1=None
+  false_answer (unanswerable, wrongly answered -- worst failure): 0
+  false_refusal (answerable, wrongly refused): 1
+
+Cost:
+  total spent: $0.0004  (cap: 1.0)
+    groq:openai/gpt-oss-120b: $0.0004  in=2295 out=105  measured_calls=1 estimated_calls=0
+  NOTE: if citation.verifier is 'llm' or 'hybrid', the Answerer's claim-checker makes additional LLM calls not exposed on Answer.usage -- their cost is not included in `cost.by_model` above
+
+OVERALL: FAIL
+  - refusal_accuracy=0.500 < threshold 0.800

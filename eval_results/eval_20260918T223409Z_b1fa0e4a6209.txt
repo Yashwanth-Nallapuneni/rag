@@ -1,0 +1,20 @@
+RAGAS evaluation -- 2026-09-18T22:34:08+00:00
+config fingerprint: b1fa0e4a6209
+generation model:   groq:openai/gpt-oss-120b
+judge model:        groq:llama-3.3-70b-versatile
+dataset:            /private/tmp/claude-501/-Users-yashwanth-Desktop-claude-rag/c6f06a04-a598-4d3c-b718-68fd260190fc/scratchpad/smoke_golden.jsonl (4/8 sampled)
+
+RAGAS metrics:
+  UNAVAILABLE: every sampled answer was refused; nothing to grade
+
+Refusal accuracy (computed by us, not RAGAS):
+  total=4  accuracy=0.25  precision=0.25  recall=1.0  f1=0.4
+  false_answer (unanswerable, wrongly answered -- worst failure): 0
+  false_refusal (answerable, wrongly refused): 3
+
+Cost:
+  total spent: $0.0000  (cap: 1.0)
+  NOTE: if citation.verifier is 'llm' or 'hybrid', the Answerer's claim-checker makes additional LLM calls not exposed on Answer.usage -- their cost is not included in `cost.by_model` above
+
+OVERALL: FAIL
+  - refusal_accuracy=0.250 < threshold 0.800

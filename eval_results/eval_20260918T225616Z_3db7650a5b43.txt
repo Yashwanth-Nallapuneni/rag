@@ -1,0 +1,26 @@
+RAGAS evaluation -- 2026-09-18T22:56:15+00:00
+config fingerprint: 3db7650a5b43
+generation model:   groq:openai/gpt-oss-120b
+judge model:        groq:qwen/qwen3.8-27b
+dataset:            /private/tmp/claude-501/-Users-yashwanth-Desktop-claude-rag/c6f06a04-a598-4d3c-b718-68fd260190fc/scratchpad/smoke_golden.jsonl (3/8 sampled)
+
+RAGAS metrics:
+  faithfulness           1.0000   threshold 0.8   PASS
+  answer_relevancy       0.9160   threshold 0.7   PASS
+  context_precision      1.0000   threshold 0.65   PASS
+  context_recall         1.0000   threshold 0.65   PASS
+  (excluded 2 refused answer(s) from these averages)
+
+Refusal accuracy (computed by us, not RAGAS):
+  total=3  accuracy=0.6666666666666666  precision=0.5  recall=1.0  f1=0.6666666666666666
+  false_answer (unanswerable, wrongly answered -- worst failure): 0
+  false_refusal (answerable, wrongly refused): 1
+
+Cost:
+  total spent: $0.0054  (cap: 1.0)
+    groq:openai/gpt-oss-120b: $0.0004  in=2295 out=105  measured_calls=1 estimated_calls=0
+    groq:qwen/qwen3.8-27b: $0.0050  in=13515 out=3800  measured_calls=9 estimated_calls=0
+  NOTE: if citation.verifier is 'llm' or 'hybrid', the Answerer's claim-checker makes additional LLM calls not exposed on Answer.usage -- their cost is not included in `cost.by_model` above
+
+OVERALL: FAIL
+  - refusal_accuracy=0.667 < threshold 0.800

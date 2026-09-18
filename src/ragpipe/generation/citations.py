@@ -25,6 +25,34 @@ from .context import RenderedContext, citation_for
 # paper's bibliography reference and is deliberately ignored.
 _MARKER_RE = re.compile(r"\[S(\d{1,3})\]")
 
+# Real models do not reliably emit ASCII brackets. Groq's gpt-oss-120b cited
+# every passage as 【S1】 with CJK fullwidth brackets (U+3010/U+3011), which our
+# ASCII-only pattern could not see -- so every sentence counted as uncited,
+# support came out at 0%, and the pipeline refused three out of three
+# answerable questions while the answers were in fact correct and properly
+# attributed. Normalisation is deliberately narrow: only a bracket pair
+# wrapping an S-marker is rewritten, so a fullwidth bracket appearing in
+# quoted source text is left alone.
+_FULLWIDTH_MARKER_RE = re.compile(
+    r"[\u3010\uff3b\u3014\ufe5d\u2045]\s*[Ss]\s*(\d{1,3})\s*[\u3011\uff3d\u3015\ufe5e\u2046]"
+)
+# Signals that a model tried to cite but in a shape we do not accept. Logged
+# rather than silently swallowed, because the failure mode is a 100% refusal
+# rate that looks like a retrieval problem.
+_SUSPECT_MARKER_RE = re.compile(
+    r"[\u3010\uff3b\u3014]\s*\d{1,3}\s*[\u3011\uff3d\u3015]|\(\s*[Ss]\d{1,3}\s*\)"
+)
+
+
+def normalize_citation_markers(text: str) -> str:
+    """Rewrite fullwidth/CJK bracket citation markers to ASCII [S<n>]."""
+    return _FULLWIDTH_MARKER_RE.sub(lambda m: f"[S{m.group(1)}]", text)
+
+
+def has_suspect_markers(text: str) -> bool:
+    """True when the text looks like it cites in an unsupported shape."""
+    return bool(_SUSPECT_MARKER_RE.search(text))
+
 # Match a sentence together with the markers that TRAIL it. Splitting on
 # sentence boundaries alone attributes "...recurrence. [1] Next..." to the
 # wrong sentence -- the [1] lands at the head of the next claim, so every
@@ -64,6 +92,7 @@ class Claim:
 
 def extract_markers(text: str) -> list[int]:
     """Markers in order of first appearance, de-duplicated."""
+    text = normalize_citation_markers(text)
     seen: dict[int, None] = {}
     for m in _MARKER_RE.finditer(text):
         seen.setdefault(int(m.group(1)), None)
@@ -84,7 +113,7 @@ def split_claims(text: str) -> list[Claim]:
     passage. A whole-answer verdict hides one unsupported sentence inside four
     good ones.
     """
-    body = text.strip()
+    body = normalize_citation_markers(text).strip()
     if not body:
         return []
 
@@ -122,6 +151,7 @@ def resolve_citations(
 ) -> tuple[list[Citation], list[int]]:
     """Map markers to chunks. Returns (citations, markers that resolve to
     nothing)."""
+    answer_text = normalize_citation_markers(answer_text)
     mapping = rendered.marker_to_chunk
     citations: list[Citation] = []
     unknown: list[int] = []

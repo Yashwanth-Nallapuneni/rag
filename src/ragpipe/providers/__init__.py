@@ -33,10 +33,42 @@ __all__ = [
     "ProviderError",
     "Reranker",
     "RerankResult",
+    "default_model_for",
     "get_llm",
     "get_embedder",
     "get_reranker",
 ]
+
+
+def default_model_for(provider: str) -> str | None:
+    """The model a provider uses when config leaves `model` unset.
+
+    Needed because a label like "groq:default" is useless for pricing and for
+    reporting: the placeholder has to be resolved to the real model id. Done
+    by importing the provider module's constant rather than constructing the
+    provider, so this works with no credentials present.
+    """
+    modules = {
+        "mock": ("mock", "mock-extractive-v1"),
+        "anthropic": ("anthropic", None),
+        "openai": ("openai", None),
+        "groq": ("groq", None),
+        "openrouter": ("openrouter", None),
+        "ollama": ("ollama", None),
+    }
+    entry = modules.get(provider)
+    if entry is None:
+        return None
+    module_name, literal = entry
+    if literal:
+        return literal
+    import importlib
+
+    try:
+        module = importlib.import_module(f".llm.{module_name}", __package__)
+    except ImportError:
+        return None
+    return getattr(module, "DEFAULT_MODEL", None)
 
 
 def get_llm(settings: "Settings") -> LLMProvider:

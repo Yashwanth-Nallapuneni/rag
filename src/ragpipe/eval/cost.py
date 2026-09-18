@@ -33,6 +33,14 @@ from typing import Any
 # `load_price_table`).
 DEFAULT_PRICES: dict[str, tuple[float, float]] = {
     "gpt-5-mini": (0.25, 2.00),
+    # Groq models confirmed available on a real free-tier key (models.list()):
+    # llama-3.3-70b-versatile is NOT, despite appearing in pricing write-ups,
+    # so do not assume a model exists just because it has a published price.
+    # These two figures are UNVERIFIED estimates placed here only so the cost
+    # guard has something to work with -- confirm against Groq's live pricing
+    # before any paid run, or override with RAGPIPE_EVAL_PRICES.
+    "qwen/qwen3.8-27b": (0.20, 0.60),          # UNVERIFIED estimate
+    "openai/gpt-oss-20b": (0.10, 0.40),        # UNVERIFIED estimate
     "gpt-5-nano": (0.05, 0.40),
     "claude-haiku-4-5": (1.00, 5.00),
     "claude-sonnet-5": (2.00, 10.00),
