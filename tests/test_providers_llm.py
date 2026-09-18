@@ -13,10 +13,10 @@ from ragpipe.providers import (
 )
 
 CONTEXT_PROMPT = """Context:
-[1] (Attention Is All You Need | 3 Model Architecture | p. 3)
+[S1] (Attention Is All You Need | 3 Model Architecture | p. 3)
 The Transformer uses multi-head self-attention instead of recurrence. This allows significantly more parallelization during training.
 
-[2] (BERT | p. 2)
+[S2] (BERT | p. 2)
 BERT is pretrained with a masked language modeling objective on unlabeled text.
 
 Question: What does the Transformer use instead of recurrence?"""
@@ -30,13 +30,13 @@ def llm(settings):
 def test_mock_answers_from_context_with_citation(llm):
     out = llm.complete(LLMRequest(system="s", user=CONTEXT_PROMPT, task="answer")).text
     assert "self-attention" in out
-    assert "[1]" in out
+    assert "[S1]" in out
 
 
 def test_mock_does_not_cite_irrelevant_passages(llm):
     """A padded answer that cites unrelated chunks would inflate faithfulness."""
     out = llm.complete(LLMRequest(system="s", user=CONTEXT_PROMPT, task="answer")).text
-    assert "[2]" not in out
+    assert "[S2]" not in out
     assert "BERT" not in out
 
 
@@ -61,7 +61,7 @@ def test_mock_is_deterministic(llm):
 
 def test_mock_claim_check_separates_supported_from_unsupported(llm):
     prompt = """Context:
-[1] (X | p. 1)
+[S1] (X | p. 1)
 The Transformer uses multi-head self-attention instead of recurrence.
 
 CLAIM 1: The Transformer uses multi-head self-attention instead of recurrence.

@@ -29,8 +29,9 @@ _STOPWORDS = {
     "will", "shall", "may", "might", "must", "have", "has", "had", "about",
 }
 
-# Matches a context block header like:  [2] (Attention Is All You Need | p. 4)
-_BLOCK_RE = re.compile(r"^\s*\[(\d+)\]\s*(?:\(([^)]*)\))?\s*$", re.MULTILINE)
+# Matches a context block header like: [S2] (Attention Is All You Need | p. 4)
+# The S prefix keeps these distinct from a paper's own "[4, 15]" references.
+_BLOCK_RE = re.compile(r"^\s*\[S(\d+)\]\s*(?:\(([^)]*)\))?\s*$", re.MULTILINE)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z(\[])")
 # Anything from one of these headings onward is instruction, not context.
 _TAIL_RE = re.compile(
@@ -149,7 +150,7 @@ class MockLLM:
                 break
 
         return " ".join(
-            f"{s.rstrip()}{'' if s.rstrip().endswith(('.', '!', '?')) else '.'} [{m}]"
+            f"{s.rstrip()}{'' if s.rstrip().endswith(('.', '!', '?')) else '.'} [S{m}]"
             for m, s in chosen
         )
 

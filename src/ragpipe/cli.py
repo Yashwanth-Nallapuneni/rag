@@ -87,6 +87,68 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     return 0 if report["parsed"] and not report["failed"] else 1
 
 
+def _cmd_index(args: argparse.Namespace) -> int:
+    from ragpipe.index.builder import build_index
+
+    s = load_settings(env=args.env)
+    report = build_index(s, force=args.force)
+    print(json.dumps(report, indent=2, default=str))
+    return 0
+
+
+def _cmd_ask(args: argparse.Namespace) -> int:
+    from ragpipe.generation.answerer import build_answerer
+
+    s = load_settings(env=args.env)
+    if args.top_k:
+        s.retrieval.top_k = args.top_k
+    if args.mode:
+        s.retrieval.mode = args.mode
+
+    answerer = build_answerer(s)
+    result = answerer.answer(args.question)
+
+    if args.json:
+        print(result.model_dump_json(indent=2))
+        return 0 if not result.refused else 2
+
+    print(f"\n{result.text}\n")
+    if result.refused:
+        print(f"  [refused: {result.status.value}] {result.refusal_reason}")
+    if result.citations:
+        print("Sources:")
+        for c in result.citations:
+            print(f"  [{c.marker}] {c.locator}")
+            print(f"      chunk: {c.chunk_id}")
+    if args.show_context:
+        print("\nRetrieved passages:")
+        for i, rc in enumerate(result.contexts, start=1):
+            print(f"\n  [{i}] score={rc.score:.4f}  {rc.chunk.locator()}")
+            print(f"      {rc.chunk.text[:400].strip()}...")
+    stages = " ".join(f"{k}={v:.0f}ms" for k, v in result.timings_ms.items())
+    print(f"\n  {stages}  model={result.model}  prompt={result.prompt_version}")
+    return 0 if not result.refused else 2
+
+
+def _cmd_prompts(args: argparse.Namespace) -> int:
+    from ragpipe.prompts import list_prompts, load_prompt
+
+    s = load_settings(env=args.env)
+    available = list_prompts(s.prompts.path)
+    for name, versions in available.items():
+        active = {
+            "answer": s.prompts.answer_version,
+            "claim_check": s.prompts.claim_check_version,
+        }.get(name)
+        for v in versions:
+            mark = " <- active" if v == active else ""
+            prompt = load_prompt(name, v, str(s.prompts.path))
+            print(f"{name}/{v}{mark}")
+            if prompt.description:
+                print(f"    {prompt.description.strip().splitlines()[0]}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ragpipe", description="Production-grade RAG pipeline")
     p.add_argument("--env", default=None, help="config/<env>.yaml layer to apply")
@@ -107,6 +169,21 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--sample", type=int, default=0, help="print N sample chunks")
     i.add_argument("--dry-run", action="store_true", help="do not write chunks.jsonl")
     i.set_defaults(func=_cmd_ingest)
+
+    x = sub.add_parser("index", help="embed chunks into the vector store")
+    x.add_argument("--force", action="store_true", help="rebuild even if unchanged")
+    x.set_defaults(func=_cmd_index)
+
+    a = sub.add_parser("ask", help="ask a question against the indexed corpus")
+    a.add_argument("question")
+    a.add_argument("--top-k", type=int, default=None)
+    a.add_argument("--mode", choices=["dense", "sparse", "hybrid"], default=None)
+    a.add_argument("--show-context", action="store_true")
+    a.add_argument("--json", action="store_true")
+    a.set_defaults(func=_cmd_ask)
+
+    pr = sub.add_parser("prompts", help="list versioned prompts")
+    pr.set_defaults(func=_cmd_prompts)
     return p
 
 

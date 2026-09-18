@@ -8,8 +8,10 @@ The point of this project is not the demo. It is the discipline around it:
 hybrid retrieval, cross-encoder reranking, enforced citations, and an
 evaluation harness that **gates CI on answer faithfulness**.
 
-> Status: Phase 1 of 6 complete (scaffolding, config, provider abstraction, corpus).
-> Numbers and architecture diagram land in Phase 6.
+> Status: Phase 3 of 6 complete. Ingestion, chunking, embedding, dense
+> retrieval, cited answers and a FastAPI service all work end to end.
+> Hybrid retrieval and reranking are Phase 4; the RAGAS CI gate is Phase 6.
+> 156 tests passing.
 
 ## Why the provider abstraction
 
@@ -26,8 +28,31 @@ and therefore runs in CI. Switching to a hosted model is one config line.
 make install
 make doctor      # which providers are usable right now
 make corpus      # download the arXiv corpus (rate-limited, ~4 min)
-make test        # fast offline tests
+make ingest      # parse + chunk  -> 1054 chunks from 40 papers
+make index       # embed + store  -> ChromaDB, ~35s
+make ask Q="what problem does self-attention solve?"
+make serve       # API on :8000, interactive docs at /docs
+make test        # 156 offline tests
 ```
+
+## Citations
+
+Every answer sentence carries a `[S1]`-style marker that resolves to an exact
+passage, and `GET /chunk/{chunk_id}` returns that passage in full so a reader
+can land on the paragraph the claim came from.
+
+The `S` prefix is load-bearing. Academic prose is dense with its own reference
+markers -- *"generative retrieval in industrial search [4, 15, 20, 26]"* -- so
+a plain `[n]` scheme cannot distinguish a citation to passage 4 from the source
+paper's own bibliography entry 4. Quoting a passage verbatim then yields an
+answer that appears to cite passages which may not exist. `[S4]` cannot
+collide.
+
+When the retrieved passages do not support an answer, the system refuses. The
+refusal is detected from a sentinel the prompt mandates rather than by
+pattern-matching apologetic prose, which varies by model and is unreliable to
+parse. Over the API a refusal is a **200 with `status: refused_*`** -- it is a
+product behaviour the client renders, not an HTTP failure.
 
 ## Configuration
 

@@ -32,3 +32,36 @@ def settings() -> Settings:
             "rerank": {"provider": "mock"},
         }
     )
+
+
+@pytest.fixture(scope="session")
+def corpus_chunks():
+    """A slice of the real ingested corpus. Skips if it has not been built."""
+    from ragpipe.ingest.pipeline import read_chunks
+
+    path = ROOT / "data" / "processed" / "chunks.jsonl"
+    if not path.exists():
+        pytest.skip("run `make ingest` first")
+    return read_chunks(path)[:60]
+
+
+@pytest.fixture
+def offline_store(tmp_path, corpus_chunks):
+    """A populated Chroma collection built with the deterministic mock
+    embedder, so store and retrieval tests need no downloads and no network."""
+    from ragpipe.config import load_settings
+    from ragpipe.index.chroma_store import ChromaStore
+    from ragpipe.providers import get_embedder
+
+    settings = load_settings(
+        overrides={
+            "llm": {"provider": "mock"},
+            "embeddings": {"provider": "mock", "dimension": 384},
+            "rerank": {"provider": "mock"},
+            "vector_store": {"path": str(tmp_path / "chroma"), "collection": "test"},
+        }
+    )
+    embedder = get_embedder(settings)
+    store = ChromaStore(settings.vector_store, settings.embeddings.dimension)
+    store.upsert(corpus_chunks, embedder.embed_documents([c.text for c in corpus_chunks]))
+    return settings, store

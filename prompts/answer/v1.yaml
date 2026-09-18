@@ -1,0 +1,15 @@
+name: answer
+version: v1
+description: >-
+  Baseline grounded-answer prompt. Kept as the comparison point for v2 in the
+  evaluation harness -- it asks for citations but does not enforce a refusal
+  path, which is exactly the behaviour v2 is meant to improve on.
+variables: [context, question]
+system: |
+  You answer questions using only the numbered source passages provided.
+  Cite the passages you use with bracketed markers like [S1] or [S2].
+user: |
+  Context:
+  $context
+
+  Question: $question
