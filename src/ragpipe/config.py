@@ -52,7 +52,7 @@ class IngestConfig(BaseModel):
     strip_pdf_headers_footers: bool = True
     header_footer_margin_ratio: float = 0.08
     min_repeat_ratio: float = 0.5
-    drop_references_section: bool = False
+    drop_references_section: bool = True
     min_chars_per_doc: int = 500
 
 

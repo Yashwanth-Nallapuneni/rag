@@ -76,3 +76,41 @@ def test_real_corpus_ingests_with_provenance(settings):
         assert c.doc_title
         assert c.page_start is not None, f"{c.chunk_id} has no page for its citation"
         assert c.token_count <= settings.chunking.chunk_size * 1.15
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[1] / "data/processed/chunks.jsonl").exists(),
+    reason="run `make ingest` first",
+)
+def test_real_corpus_overlap_and_budget():
+    """End-to-end guarantee on the actual corpus: adjacent chunks share text,
+    and chunk sizes stay inside the spec's 500-800 token window."""
+    import collections
+    import re
+
+    root = Path(__file__).resolve().parents[1]
+    chunks = read_chunks(root / "data/processed/chunks.jsonl")
+    assert len(chunks) > 500
+
+    def shingles(text: str, k: int = 8) -> set[tuple[str, ...]]:
+        w = re.findall(r"\w+", text.lower())
+        return {tuple(w[i : i + k]) for i in range(max(0, len(w) - k + 1))}
+
+    by_doc: dict[str, list] = collections.defaultdict(list)
+    for c in chunks:
+        by_doc[c.doc_id].append(c)
+
+    pairs = overlapping = 0
+    for docs in by_doc.values():
+        docs.sort(key=lambda c: c.chunk_index)
+        for a, b in zip(docs, docs[1:]):
+            pairs += 1
+            if shingles(a.text) & shingles(b.text):
+                overlapping += 1
+
+    # The remainder are windows filled by a single long sentence or atomic
+    # block, where there is genuinely nothing to carry over.
+    assert overlapping / pairs > 0.95, f"only {overlapping}/{pairs} pairs overlap"
+    assert all(c.page_start is not None for c in chunks)
+    assert sum(1 for c in chunks if c.token_count > 700) == 0

@@ -32,12 +32,32 @@ class _WhitespaceEncoder:
         raise NotImplementedError("fallback encoder cannot decode")
 
 
+class _TiktokenEncoder:
+    """Wraps a tiktoken encoding to treat special tokens as ordinary text.
+
+    Real documents contain these strings: a paper about fill-in-the-middle
+    code models quotes "<|fim_middle|>" verbatim. tiktoken raises on such
+    tokens by default, which would abort an entire corpus ingest over one
+    quoted string, so the check is disabled here rather than at each call
+    site.
+    """
+
+    def __init__(self, encoding):
+        self._enc = encoding
+
+    def encode(self, text: str) -> list[int]:
+        return self._enc.encode(text, disallowed_special=())
+
+    def decode(self, tokens: list[int]) -> str:
+        return self._enc.decode(tokens)
+
+
 @lru_cache(maxsize=4)
 def get_encoder(name: str = "cl100k_base") -> Encoder:
     try:
         import tiktoken
 
-        return tiktoken.get_encoding(name)
+        return _TiktokenEncoder(tiktoken.get_encoding(name))
     except Exception:  # noqa: BLE001 - tiktoken may need network on first use
         return _WhitespaceEncoder()
 

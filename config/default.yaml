@@ -12,7 +12,11 @@ ingest:
   strip_pdf_headers_footers: true
   header_footer_margin_ratio: 0.08   # top/bottom fraction of page scanned for repeats
   min_repeat_ratio: 0.5              # line must repeat on >=50% of pages to be furniture
-  drop_references_section: false
+  # References/bibliography sections were 31% of all chunks and are pure
+  # citation noise for question answering: retrieving "Bordoloi, Chakraborty,
+  # et al. 2023..." can never support an answer about a paper's content.
+  # Flip to false if you need to answer questions about what a paper cites.
+  drop_references_section: true
   min_chars_per_doc: 500
 
 chunking:

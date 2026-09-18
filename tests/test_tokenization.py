@@ -17,3 +17,9 @@ def test_truncate_respects_budget():
     text = "The Transformer architecture relies on self-attention. " * 50
     assert count_tokens(truncate_to_tokens(text, 40)) <= 40
     assert truncate_to_tokens("short text", 1000) == "short text"
+
+
+def test_special_token_strings_are_ordinary_text():
+    """A paper quoting "<|fim_middle|>" must not abort the corpus ingest."""
+    for probe in ("<|fim_middle|>", "<|endoftext|>", "prefix <|fim_prefix|> suffix"):
+        assert count_tokens(probe) > 0
