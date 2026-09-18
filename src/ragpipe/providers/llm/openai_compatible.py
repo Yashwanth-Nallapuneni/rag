@@ -309,6 +309,9 @@ class OpenAICompatibleLLM:
         )
         if request.stop:
             kwargs["stop"] = request.stop
+        effort = getattr(self.cfg, "reasoning_effort", None)
+        if effort:
+            kwargs["reasoning_effort"] = effort
 
         estimated_tokens = self._estimate_tokens(request, max_tokens)
         max_retries = max(1, self.cfg.max_retries)
@@ -335,8 +338,19 @@ class OpenAICompatibleLLM:
                     wait_s = base_delay * (2 ** (attempt - 1))
                 self.limiter.record_external_wait(wait_s)
                 time.sleep(wait_s)
+            except openai.BadRequestError as exc:
+                # A provider that does not know `reasoning_effort` rejects the
+                # whole request; drop it once and retry rather than failing.
+                if "reasoning_effort" in kwargs and "reasoning" in str(exc).lower():
+                    logger.warning(
+                        "%s rejected reasoning_effort; retrying without it", self.name
+                    )
+                    kwargs.pop("reasoning_effort", None)
+                    continue
+                raise ProviderError(
+                    f"provider '{self.name}' rejected the request: {exc}"
+                ) from exc
             except (
-                openai.BadRequestError,
                 openai.AuthenticationError,
                 openai.NotFoundError,
             ) as exc:

@@ -29,6 +29,26 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "config"
 
 
+def _load_dotenv_once() -> None:
+    """Load .env into the process environment at import time.
+
+    pydantic-settings reads .env for RAGPIPE_* fields only, but provider
+    credentials are plain env vars that the provider classes fetch with
+    os.getenv -- so without this, a GROQ_API_KEY sitting in .env is invisible
+    and every script fails with "requires GROQ_API_KEY" while the key is right
+    there. Existing environment variables win, so an explicitly exported key
+    is never silently overridden by a stale file.
+    """
+    try:
+        from dotenv import load_dotenv
+    except ImportError:  # pragma: no cover - dotenv ships with pydantic-settings
+        return
+    load_dotenv(PROJECT_ROOT / ".env", override=False)
+
+
+_load_dotenv_once()
+
+
 def _resolve(path: str | Path) -> Path:
     p = Path(path)
     return p if p.is_absolute() else PROJECT_ROOT / p
@@ -146,6 +166,14 @@ class LLMConfig(BaseModel):
     # new one-line registry entry) without any new provider code: point
     # base_url at the host and api_key_env at whatever env var holds its key.
     base_url: str | None = None
+    # Reasoning models (Groq's gpt-oss-*, for one) spend output tokens on
+    # reasoning before emitting any content, and those tokens are billed and
+    # counted against rate limits. Measured on gpt-oss-120b: a three-word
+    # answer cost 148 reasoning + 15 content tokens. "low" cut reasoning ~40%
+    # with identical verdicts on a claim-check probe, which matters a lot on a
+    # token-capped free tier. None omits the parameter entirely, so providers
+    # that reject it are unaffected.
+    reasoning_effort: str | None = None
     api_key_env: str | None = None
 
     # Client-side pacing so a rate-limited (e.g. free-tier) key does not just

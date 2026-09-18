@@ -33,6 +33,14 @@ from ragpipe.eval.golden import (  # noqa: E402
 from ragpipe.ingest.pipeline import read_chunks  # noqa: E402
 from ragpipe.providers import get_llm  # noqa: E402
 
+
+def _provider_choices() -> list[str]:
+    from typing import get_args
+
+    from ragpipe.config import LLMConfig
+
+    return list(get_args(LLMConfig.model_fields["provider"].annotation))
+
 # Rough hosted-provider pricing for a cost estimate before spending real
 # money; not billed anywhere, just a heads-up printed to the terminal.
 _USD_PER_1K_TOKENS = {
@@ -51,7 +59,9 @@ def _parse_args() -> argparse.Namespace:
     )
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument(
-        "--provider", choices=["mock", "anthropic", "openai", "ollama"], default=None
+        # Derived from the config Literal rather than hardcoded, so adding a
+        # provider cannot leave this list silently stale (it already did once).
+        "--provider", choices=_provider_choices(), default=None
     )
     ap.add_argument(
         "--chunks",

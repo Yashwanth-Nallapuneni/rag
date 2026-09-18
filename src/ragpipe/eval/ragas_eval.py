@@ -57,7 +57,17 @@ DEFAULT_METRICS = ["faithfulness", "answer_relevancy", "context_precision", "con
 # ---------------------------------------------------------------------------
 
 
-def _load_pairs(settings: Settings) -> list[QAPair]:
+# Set when a run used pairs no human approved. Recorded in the result file so a
+# harness smoke test can never be mistaken later for a measured result.
+PAIRS_UNVERIFIED_WARNING = (
+    "pairs were NOT human-verified: the verification ledger was empty, so the "
+    "raw drafted dataset was used. Treat these metrics as a harness smoke "
+    "test, not as measured quality."
+)
+
+
+def _load_pairs(settings: Settings) -> tuple[list[QAPair], bool]:
+    """Returns (pairs, human_verified)."""
     try:
         from .golden import load_verified  # type: ignore
     except ImportError:
@@ -65,16 +75,17 @@ def _load_pairs(settings: Settings) -> list[QAPair]:
             "ragpipe.eval.golden not importable yet; falling back to reading "
             "the raw dataset JSONL with no verification-ledger filtering"
         )
-        return _read_jsonl_fallback(settings.evaluation.dataset)
+        return _read_jsonl_fallback(settings.evaluation.dataset), False
     pairs = load_verified(settings.evaluation.dataset_path)
     if not pairs:
         log.warning(
             "load_verified returned 0 pairs for %s; falling back to the raw "
-            "dataset (unverified) so the harness is still exercisable",
+            "dataset (UNVERIFIED) so the harness is still exercisable. %s",
             settings.evaluation.dataset_path,
+            PAIRS_UNVERIFIED_WARNING,
         )
-        return _read_jsonl_fallback(settings.evaluation.dataset)
-    return pairs
+        return _read_jsonl_fallback(settings.evaluation.dataset), False
+    return pairs, True
 
 
 def _read_jsonl_fallback(path: Path) -> list[QAPair]:
@@ -349,7 +360,10 @@ def run_evaluation(
     true.
     """
     metric_names = list(metrics or settings.evaluation.metrics or DEFAULT_METRICS)
-    all_pairs = pairs if pairs is not None else _load_pairs(settings)
+    if pairs is not None:
+        all_pairs, human_verified = pairs, False
+    else:
+        all_pairs, human_verified = _load_pairs(settings)
 
     n = sample_size if sample_size is not None else settings.evaluation.sample_size
     if n is not None and n < len(all_pairs):
@@ -553,6 +567,10 @@ def run_evaluation(
         "judge_model": judge_model_label,
         "judge_is_generation_model": judge_model_label == gen_model_label,
         "dataset_path": str(settings.evaluation.dataset),
+        # Stamped on every result so an unverified smoke test is self-labelling
+        # and can never be quoted later as a measured number.
+        "pairs_human_verified": human_verified,
+        "caveat": None if human_verified else PAIRS_UNVERIFIED_WARNING,
         "dataset_size_available": len(all_pairs),
         "sample_size": len(selected),
         "metrics_requested": metric_names,
