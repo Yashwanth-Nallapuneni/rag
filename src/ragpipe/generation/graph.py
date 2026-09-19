@@ -274,6 +274,7 @@ def _make_refuse(answerer: "Answerer"):
             state.get("refusal_contexts", []),
             state.get("timings_ms", {}),
             state.get("claim_verdicts"),
+            state.get("usage"),
         )
         return {"answer": answer}
 

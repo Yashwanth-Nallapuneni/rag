@@ -70,7 +70,10 @@ class Answerer:
         contexts: list[RetrievedChunk],
         timings: dict[str, float],
         verdicts: list[ClaimVerdict] | None = None,
+        usage: dict[str, int] | None = None,
     ) -> Answer:
+        # A refusal after generation still spent the generation tokens; drop
+        # the usage here and the cost tracker under-reports a hard budget.
         return Answer(
             question=question,
             text=self.settings.citation.refusal_message.strip(),
@@ -81,6 +84,7 @@ class Answerer:
             prompt_version=self.prompt.id,
             model=f"{self.llm.name}:{self.llm.model}",
             timings_ms=timings,
+            usage=dict(usage or {}),
             config_fingerprint=self.settings.fingerprint(),
         )
 

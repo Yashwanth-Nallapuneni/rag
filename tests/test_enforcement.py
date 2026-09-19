@@ -209,3 +209,28 @@ def test_gate_is_skipped_when_no_rerank_scores_exist(offline_store):
     answerer = Answerer(settings, store, verifier=None)
     a = answerer.answer("evaluation of models on the benchmark")
     assert a.status != AnswerStatus.REFUSED_NO_CONTEXT
+
+
+def test_refusal_after_generation_keeps_token_usage(offline_store):
+    """A low-support refusal happens AFTER the LLM was paid. Dropping its usage
+    made the cost tracker under-report spend and made post-generation
+    refusals look like pre-generation ones."""
+    settings, store = offline_store
+    settings.citation.enforce = True
+    settings.citation.min_supported_ratio = 0.8
+    settings.citation.min_relevance_score = None
+
+    class AlwaysUnsupported:
+        def verify(self, answer_text, rendered, question):
+            from ragpipe.schemas import ClaimVerdict
+
+            return [
+                ClaimVerdict(claim="c", supported=False, support_score=0.0, reason="no")
+            ], 0.0
+
+    a = Answerer(settings, store, verifier=AlwaysUnsupported()).answer(
+        "model evaluation benchmark results"
+    )
+    assert a.status == AnswerStatus.REFUSED_LOW_SUPPORT
+    assert a.usage.get("input_tokens", 0) > 0
+    assert a.usage.get("output_tokens", 0) > 0
