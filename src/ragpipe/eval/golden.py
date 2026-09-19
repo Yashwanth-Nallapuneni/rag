@@ -45,6 +45,30 @@ _OFF_DOMAIN_QUESTIONS = [
     "What year did the Berlin Wall fall?",
     "What is the recommended daily intake of vitamin C?",
     "How does a four-stroke combustion engine work?",
+    "What is the capital of Mongolia?",
+    "How long should a soft-boiled egg be cooked?",
+    "Who wrote the novel One Hundred Years of Solitude?",
+    "What causes the northern lights?",
+    "What is the tallest mountain in Africa?",
+    "How is a sourdough starter maintained?",
+    "What is the half-life of carbon-14?",
+    "Which planet has the most moons?",
+    "What are the rules of offside in ice hockey?",
+    "How do you change a flat bicycle tire?",
+    "What is the main ingredient in traditional guacamole?",
+    "When was the Eiffel Tower completed?",
+]
+
+# In-domain but uncovered: a real paper's title with a detail papers of this
+# kind rarely state. Rotated so the refusal set is not one template repeated
+# -- a repeated probe measures one question many times, not refusal accuracy.
+# The reviewer must still confirm each is truly absent from the paper.
+_UNCOVERED_TEMPLATES = [
+    'What dataset licensing terms does "{title}" use for its released code and data?',
+    'What was the total electricity cost in US dollars of the experiments in "{title}"?',
+    'Which funding agency grant number supported the work in "{title}"?',
+    'How many human annotators were paid, and at what hourly rate, for "{title}"?',
+    'On what date was the code for "{title}" first released publicly?',
 ]
 
 _SECTION_SKIP_RE = re.compile(
@@ -250,7 +274,11 @@ _LLM_DRAFT_SYSTEM = (
     "You write evaluation questions for a retrieval-augmented QA system. "
     "Given ONE passage, write exactly one question of the requested category "
     "that is answerable using ONLY this passage, plus a concise ground-truth "
-    "answer drawn only from it. Reply with strict JSON: "
+    "answer drawn only from it. The question must read as a real user's, "
+    "standalone: never refer to 'the passage', 'the text' or 'the study' "
+    "without naming it -- the user has not seen the passage. Name the "
+    "method, system or paper the question is about instead. "
+    "Reply with strict JSON: "
     '{"question": "...", "ground_truth": "..."}. No other text.'
 )
 
@@ -327,17 +355,15 @@ def _unanswerable_pair(
     off_domain: bool,
 ) -> QAPair:
     if off_domain or not chunks:
-        question = rng.choice(_OFF_DOMAIN_QUESTIONS)
+        question = _OFF_DOMAIN_QUESTIONS[idx % len(_OFF_DOMAIN_QUESTIONS)]
         truth = "The corpus does not cover this topic; no answer is supported."
         doc_id = None
     else:
         # Plausible in-domain question the corpus happens not to answer: ask
         # about a real paper's title/topic but for a detail no chunk covers.
-        c = rng.choice(chunks)
-        question = (
-            f"What dataset licensing terms does \"{c.doc_title}\" use for its "
-            "released code and data?"
-        )
+        c = chunks[idx % len(chunks)]
+        template = _UNCOVERED_TEMPLATES[idx % len(_UNCOVERED_TEMPLATES)]
+        question = template.format(title=c.doc_title)
         truth = (
             "The corpus does not contain this information; no answer is "
             "supported by the indexed documents."
@@ -416,11 +442,21 @@ def draft_candidates(
             )
         )
 
+    # Distinct papers for the in-domain probes, a shuffled off-domain list:
+    # indices below walk each without replacement.
     off_domain_count = n_unans // 2
+    by_doc: dict[str, Chunk] = {}
+    for c in sampled:
+        by_doc.setdefault(c.doc_id, c)
+    uncovered_pool = list(by_doc.values())
+    rng.shuffle(uncovered_pool)
+    off_order = list(range(len(_OFF_DOMAIN_QUESTIONS)))
+    rng.shuffle(off_order)
     for i in range(n_unans):
-        pairs.append(
-            _unanswerable_pair(i, sampled, rng, off_domain=i < off_domain_count)
-        )
+        off = i < off_domain_count
+        idx = off_order[i % len(off_order)] if off else i - off_domain_count
+        qa = _unanswerable_pair(idx, uncovered_pool, rng, off_domain=off)
+        pairs.append(qa.model_copy(update={"id": f"qa-unans-{i:04d}"}))
 
     rng.shuffle(pairs)
     return pairs

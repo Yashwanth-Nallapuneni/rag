@@ -1,6 +1,6 @@
 # Project state and handoff
 
-Last updated: 2026-09-19. Commit `4503bc7`. **267 passed** (offline, no API key).
+Last updated: 2026-09-19. **274 passed** (offline, no API key).
 
 This file exists so a fresh session can resume without re-deriving anything or
 undoing a decision that was made for a measured reason. Read it before changing
@@ -88,7 +88,14 @@ Mermaid architecture diagrams cannot be seen or verified until it is public.
 1. **OpenRouter key** in `.env` as `OPENROUTER_API_KEY`. Groq's free tier
    cannot produce the spec's numbers (§7). Projected total spend ~$2.
 2. **Make the GitHub repo public.**
-3. **1-2 hours reviewing the golden set** once drafted. `load_verified()`
+3. **1-2 hours reviewing the golden set** -- DRAFTED, waiting on review:
+   `eval/golden_dataset.jsonl`, 180 pairs (153 answerable, 27 unanswerable),
+   drafted by `qwen/qwen3.8-27b` on Groq. Run
+   `PYTHONPATH=src .venv/bin/streamlit run scripts/review_golden.py`.
+   Review targets: one duplicate pair ("What is On-Demand Attention?", reject
+   one); vague questions that name no paper (see the lowest scores in
+   `eval_results/gate_calibration_*.json`); and each in-domain unanswerable
+   probe must be checked as truly absent from its paper. `load_verified()`
    returns only human-approved pairs and a fresh file yields zero — so this
    cannot be faked, and must not be worked around.
 
@@ -97,9 +104,9 @@ Mermaid architecture diagrams cannot be seen or verified until it is public.
 ## 5. Next actions, in dependency order
 
 ```
-1. Re-calibrate the relevance gate against REAL generations      (§6)
-2. Draft 150 golden pairs                                        scripts/draft_golden.py
-3. Owner verifies them                                           scripts/review_golden.py
+1. Owner verifies the 180 drafts (need >= 150 approved)         scripts/review_golden.py
+2. Re-run the gate calibration on VERIFIED pairs                 scripts/calibrate_gate.py
+3. Diagnose enforcement false refusals on real generations      (§6)
 4. First real eval run                                           scripts/run_eval.py
 5. Tune fusion weights against the golden set                    (closes deviation 1)
 6. Before/after reranking faithfulness  (--rerank / --no-rerank, same dataset+judge)
@@ -111,14 +118,27 @@ Mermaid architecture diagrams cannot be seen or verified until it is public.
 
 ## 6. Calibration traps — read before touching a threshold
 
-**The relevance gate (`-7.0`) was calibrated against the MOCK pipeline and is
-now suspect.** In the last live run, 1 of 2 answerable questions was refused
-*before generation ran*. Re-measure the cross-encoder score distribution over
-real generations before changing it. Do not simply loosen it: that gate is what
-stops a faithfully-quoted but irrelevant passage from becoming a confident
-answer (asked "what is the capital of Mongolia?", an early build retrieved a
-Toronto weather-station passage, quoted it accurately, and scored 100%
-supported).
+**The relevance gate (`-7.0`) is NOT what refused the answerable question.**
+An earlier version of this file said it was. That was wrong: the refuse node
+dropped token usage, so a refusal *after* generation (by citation enforcement)
+showed zero tokens and looked like one *before* it. Fixed, with a regression
+test. `scripts/calibrate_gate.py` (retrieval + rerank only, no LLM, no cost)
+then showed every answerable smoke question scoring >= 0.61, far above -7.0.
+So the live false refusal came from **citation enforcement on a paraphrasing
+model** -- see the enforcement paragraph below.
+
+On all 180 UNVERIFIED drafts: 0/153 answerable below -7.0 (lowest -4.39); all
+13 off-domain probes at -10 to -11, caught; the 14 in-domain "uncovered
+detail" probes pass the gate, as they should -- they name a real paper, so
+the passages ARE on topic; refusing those is enforcement's job. Loosening to
+-5 changes nothing; tightening to 0 refuses 13 answerable. Gate unchanged.
+
+Still re-run `calibrate_gate.py` on the verified golden set: drafted
+questions share vocabulary with their chunk, so their scores are optimistic.
+Do not simply loosen the gate either way: it is what stops a faithfully-quoted
+but irrelevant passage from becoming a confident answer (asked "what is the
+capital of Mongolia?", an early build retrieved a Toronto weather-station
+passage, quoted it accurately, and scored 100% supported).
 
 **Do NOT tune fusion weights on the known-item benchmark.** `make bench`
 reports BM25 crushing dense retrieval and improves monotonically toward
@@ -216,7 +236,7 @@ python scripts/ci_gate.py <results.json> --baseline <previous.json>
 - Known-item Recall@1 — BM25 0.300 vs dense 0.060 on exact identifiers
 - Known-item Recall@1 — reranking lifts dense 0.256 → 0.483 (+89%)
 - Section-label noise 0.0% (was 3.6%)
-- 267 passed offline
+- 274 passed offline
 
 Call the retrieval figures **"known-item Recall@1"**, never "precision". The
 diagnostic is lexically biased and the honest framing is a strength: it shows
