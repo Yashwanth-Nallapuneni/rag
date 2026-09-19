@@ -43,6 +43,10 @@ make ui          # Streamlit demo on :8501
 make test        # 156 offline tests
 ```
 
+> **Resuming work on this?** [`docs/STATE.md`](docs/STATE.md) is the current
+> handoff: what is built, what is blocked, and the calibration traps that will
+> damage retrieval quality if a threshold is changed without re-measuring.
+
 ## The problem this solves
 
 Ask a question of a document collection and a typical RAG system gives you a
