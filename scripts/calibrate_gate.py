@@ -20,7 +20,7 @@ import argparse
 import json
 import statistics
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = ROOT / "eval_results"
     out_dir.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = out_dir / f"gate_calibration_{stamp}.json"
     out.write_text(json.dumps({
         "timestamp": stamp, "dataset_path": str(dataset), "pairs_human_verified": verified,

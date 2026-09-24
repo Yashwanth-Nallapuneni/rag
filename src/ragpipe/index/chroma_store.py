@@ -10,7 +10,6 @@ promises: similarity in [0, 1] (higher better), and `get()` in request order.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import chromadb
@@ -103,7 +102,7 @@ class ChromaStore:
         dists = (result.get("distances") or [[]])[0]
 
         hits: list[tuple[Chunk, float]] = []
-        for cid, doc, meta, dist in zip(ids, docs, metas, dists):
+        for cid, doc, meta, dist in zip(ids, docs, metas, dists, strict=True):
             hits.append((Chunk.from_store(cid, doc or "", meta or {}), self._to_similarity(dist)))
         return hits
 
@@ -137,7 +136,8 @@ class ChromaStore:
         result = self._collection.get(ids=chunk_ids, include=["documents", "metadatas"])
         by_id: dict[str, Chunk] = {}
         for cid, doc, meta in zip(
-            result.get("ids") or [], result.get("documents") or [], result.get("metadatas") or []
+            result.get("ids") or [], result.get("documents") or [], result.get("metadatas") or [],
+            strict=True,
         ):
             by_id[cid] = Chunk.from_store(cid, doc or "", meta or {})
         # Chroma does not guarantee result order matches the ids requested;
@@ -152,7 +152,7 @@ class ChromaStore:
         metas = got.get("metadatas") or []
         out = [
             Chunk.from_store(cid, text or "", md or {})
-            for cid, text, md in zip(ids, docs, metas)
+            for cid, text, md in zip(ids, docs, metas, strict=True)
         ]
         return sorted(out, key=lambda c: c.chunk_id)
 

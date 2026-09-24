@@ -59,4 +59,13 @@ src = ["src", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W"]
-ignore = ["E501"]
+ignore = [
+    "E501",
+    # str+Enum is kept on purpose: StrEnum changes str(member) from
+    # "AnswerStatus.ANSWERED" to "answered", a behaviour change for a lint.
+    "UP042",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom, not a mutable default.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]

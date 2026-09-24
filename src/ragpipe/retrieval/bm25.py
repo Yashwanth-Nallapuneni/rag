@@ -139,7 +139,7 @@ class BM25Retriever:
     @classmethod
     def load(
         cls, path: str | Path, settings: Settings, chunks: list[Chunk]
-    ) -> "BM25Retriever":
+    ) -> BM25Retriever:
         """Load a saved index if it still matches `chunks`, else raise.
 
         Callers should prefer `build_or_load`, which falls back to a fresh
@@ -167,7 +167,7 @@ class BM25Retriever:
     @classmethod
     def build_or_load(
         cls, settings: Settings, chunks: list[Chunk] | None = None
-    ) -> "BM25Retriever":
+    ) -> BM25Retriever:
         """Load the on-disk index if it matches the current chunks, else
         (re)build from scratch and persist. This is the seam `get_retriever`
         should use -- a stale sparse index next to a fresh dense one is a

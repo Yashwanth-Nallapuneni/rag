@@ -8,7 +8,7 @@ evaluation, so changes here ripple everywhere -- treat them as an API.
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Literal
 
@@ -35,7 +35,7 @@ class SourceDocument(BaseModel):
     page_count: int | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     ingested_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
+        default_factory=lambda: datetime.now(UTC)
     )
 
     @staticmethod
@@ -112,7 +112,7 @@ class Chunk(BaseModel):
         return md
 
     @classmethod
-    def from_store(cls, chunk_id: str, text: str, md: dict[str, Any]) -> "Chunk":
+    def from_store(cls, chunk_id: str, text: str, md: dict[str, Any]) -> Chunk:
         raw_sections = md.get("section_path") or ""
         return cls(
             chunk_id=chunk_id,

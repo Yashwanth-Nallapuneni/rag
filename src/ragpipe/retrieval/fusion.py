@@ -92,7 +92,7 @@ def weighted_sum(
 
     merged = _collect(result_lists)
     scores: dict[str, float] = {cid: 0.0 for cid in merged}
-    for weight, results in zip(weights, result_lists):
+    for weight, results in zip(weights, result_lists, strict=True):
         for rc in results:
             scores[rc.chunk_id] += weight * rc.score
 

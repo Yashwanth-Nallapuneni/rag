@@ -20,7 +20,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,8 +30,8 @@ from ragpipe.config import load_settings  # noqa: E402
 from ragpipe.eval.fusion_tuning import (  # noqa: E402
     BASELINE,
     RerankCache,
-    build_grid,
     bootstrap_ci,
+    build_grid,
     collect_candidates,
     decide,
     per_category,
@@ -250,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_view(name, view)
 
     result = {
-        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
         "dataset": str(dataset),
         "pairs_human_verified": verified,
         "n_pairs": len(pairs),
@@ -261,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = ROOT / "eval_results"
     out_dir.mkdir(exist_ok=True)
-    out_path = args.out or (out_dir / f"fusion_tuning_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json")
+    out_path = args.out or (out_dir / f"fusion_tuning_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.json")
     out_path.write_text(json.dumps(result, indent=2))
     print(f"\nwrote {out_path}")
     return 0

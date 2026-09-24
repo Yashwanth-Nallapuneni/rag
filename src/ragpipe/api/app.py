@@ -33,7 +33,6 @@ from .models import (
     ErrorResponse,
     HealthResponse,
     IndexResponse,
-    ProviderHealth,
     QueryRequest,
     QueryResponse,
     StatsResponse,

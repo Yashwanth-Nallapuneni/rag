@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from ragpipe.eval.golden import default_review_path, load_verified, save_dataset
 from ragpipe.eval.prescreen import (
     PrescreenRecord,

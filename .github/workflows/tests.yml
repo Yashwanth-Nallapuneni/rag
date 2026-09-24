@@ -39,7 +39,7 @@ jobs:
       - name: Lint (ruff)
         run: ruff check src tests scripts
 
-      - name: Fast offline test suite (233 tests, no API key, no model downloads)
+      - name: Fast offline test suite (no API key, no model downloads)
         # `-m "not slow"` excludes tests that download real model weights or
         # hit the network; those are covered separately (make test-all) and
         # are not required for this fast gate.

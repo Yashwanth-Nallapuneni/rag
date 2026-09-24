@@ -66,9 +66,7 @@ class LocalEmbedder:
         # `get_sentence_embedding_dimension` was renamed to
         # `get_embedding_dimension` in newer sentence-transformers releases;
         # support both without triggering the deprecation warning.
-        dim_fn = getattr(encoder, "get_embedding_dimension", None) or getattr(
-            encoder, "get_sentence_embedding_dimension"
-        )
+        dim_fn = getattr(encoder, "get_embedding_dimension", None) or encoder.get_sentence_embedding_dimension
         actual_dim = dim_fn()
         if actual_dim != self.dimension:
             raise ProviderError(

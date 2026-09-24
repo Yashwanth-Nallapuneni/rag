@@ -71,7 +71,7 @@ def default_model_for(provider: str) -> str | None:
     return getattr(module, "DEFAULT_MODEL", None)
 
 
-def get_llm(settings: "Settings") -> LLMProvider:
+def get_llm(settings: Settings) -> LLMProvider:
     cfg = settings.llm
     provider = cfg.provider
     if provider == "mock":
@@ -126,7 +126,7 @@ def _cached_embedder(key: tuple) -> EmbeddingProvider:
     raise ProviderError(f"unknown embeddings provider: {provider}")
 
 
-def get_embedder(settings: "Settings") -> EmbeddingProvider:
+def get_embedder(settings: Settings) -> EmbeddingProvider:
     """Embedding models are expensive to load, so instances are cached by the
     settings that define them."""
     c = settings.embeddings
@@ -161,7 +161,7 @@ def _cached_reranker(key: tuple) -> Reranker:
     raise ProviderError(f"unknown rerank provider: {provider}")
 
 
-def get_reranker(settings: "Settings") -> Reranker:
+def get_reranker(settings: Settings) -> Reranker:
     c = settings.rerank
     return _cached_reranker((c.provider, c.model, c.device, c.batch_size))
 

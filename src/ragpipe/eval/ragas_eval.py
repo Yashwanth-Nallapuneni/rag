@@ -35,7 +35,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -297,7 +297,7 @@ class RefusalStats:
 
 def score_refusals(pairs: list[QAPair], answers: list[Answer]) -> RefusalStats:
     stats = RefusalStats(total=len(pairs))
-    for qa, ans in zip(pairs, answers):
+    for qa, ans in zip(pairs, answers, strict=True):
         expected_refuse = qa.unanswerable
         actual_refuse = ans.refused
         if expected_refuse and actual_refuse:
@@ -446,7 +446,7 @@ def run_evaluation(
     # than scored as vacuously perfect.
     graded_rows: list[dict[str, Any]] = []
     excluded_refused = 0
-    for qa, ans in zip(selected, answers):
+    for qa, ans in zip(selected, answers, strict=True):
         if ans.refused:
             excluded_refused += 1
             continue
@@ -529,7 +529,7 @@ def run_evaluation(
                 if name in df.columns
             }
             per_sample = []
-            for idx, row in df.iterrows():
+            for _, row in df.iterrows():
                 per_sample.append(
                     {
                         "question": row.get("user_input"),
@@ -607,7 +607,7 @@ def run_evaluation(
             fails.append(f"refusal_accuracy={refusal_stats.accuracy:.3f} < threshold {thr:.3f}")
 
     result = {
-        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
         "git_commit": _git_commit(),
         "config_fingerprint": settings.fingerprint(),
         "config_summary": settings.describe(),
@@ -647,7 +647,7 @@ def run_evaluation(
                 ],
                 "answer": ans.text,
             }
-            for qa, ans in zip(selected, answers)
+            for qa, ans in zip(selected, answers, strict=True)
         ],
         "excluded_from_faithfulness_relevancy": {
             "count": excluded_refused,
@@ -672,7 +672,7 @@ def run_evaluation(
 
     results_dir = settings.evaluation.results
     results_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out_path = results_dir / f"eval_{stamp}_{settings.fingerprint()}.json"
     out_path.write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
     result["result_path"] = str(out_path)

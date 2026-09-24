@@ -4,9 +4,8 @@ import pytest
 
 from ragpipe.generation.answerer import Answerer
 from ragpipe.generation.context import BLOCK_HEADER_RE, render_context
-from ragpipe.generation.verify import LexicalVerifier, get_verifier
+from ragpipe.generation.verify import get_verifier
 from ragpipe.schemas import AnswerStatus, Chunk, RetrievedChunk
-
 
 # --- the header-regex regression -----------------------------------------
 

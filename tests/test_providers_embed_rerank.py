@@ -14,7 +14,7 @@ from ragpipe.providers import (
 
 
 def _cos(a: list[float], b: list[float]) -> float:
-    num = sum(x * y for x, y in zip(a, b))
+    num = sum(x * y for x, y in zip(a, b, strict=True))
     den = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
     return num / den if den else 0.0
 

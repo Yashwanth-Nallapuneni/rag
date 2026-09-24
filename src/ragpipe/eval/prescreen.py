@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -65,7 +65,7 @@ class PrescreenRecord:
         }
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> "PrescreenRecord":
+    def from_json(cls, data: dict[str, Any]) -> PrescreenRecord:
         return cls(
             id=data["id"],
             verdict=data.get("verdict", "ok"),
@@ -472,7 +472,7 @@ def prescreen_pair(
         reasons=reasons,
         checks=checks,
         model=model_name,
-        timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        timestamp=datetime.now(UTC).isoformat(timespec="seconds"),
     )
 
 

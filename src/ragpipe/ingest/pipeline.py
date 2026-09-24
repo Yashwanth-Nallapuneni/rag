@@ -8,14 +8,14 @@ because everything speaks `ParsedDocument` and then `Chunk`.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from ..chunking.chunker import chunk_document
 from ..config import Settings
 from ..logging_utils import get_logger
 from ..schemas import Chunk
-from .base import Parser, ParsedDocument
+from .base import ParsedDocument, Parser
 
 log = get_logger(__name__)
 
