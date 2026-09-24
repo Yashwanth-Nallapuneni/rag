@@ -2,6 +2,7 @@
 
 [![tests](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/tests.yml/badge.svg)](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/tests.yml)
 [![answer quality](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/eval.yml/badge.svg)](https://github.com/Yashwanth-Nallapuneni/rag/actions/workflows/eval.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Ask questions over an arXiv ML corpus and get answers that **cite the exact
 passage they came from** — or an explicit refusal when the retrieved passages
@@ -204,4 +205,4 @@ tests/
 
 ## License
 
-MIT
+[MIT](LICENSE) © 2026 Yashwanth Sai Nallapuneni

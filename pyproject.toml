@@ -8,7 +8,9 @@ version = "0.1.0"
 description = "Production-grade RAG over an arXiv ML corpus: hybrid retrieval, cross-encoder reranking, enforced citations, and a CI-gated RAGAS evaluation harness."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Yashwanth Sai Nallapuneni" }]
 
 dependencies = [
   "pydantic>=2.7",
