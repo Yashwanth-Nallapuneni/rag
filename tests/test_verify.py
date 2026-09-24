@@ -258,3 +258,19 @@ def test_lexical_does_not_split_on_us_style_initialism(lexical):
     assert len(verdicts) == 1
     assert ratio == 1.0
     assert verdicts[0].supported
+
+
+def test_number_embedded_in_evidence_identifier_counts():
+    """'Qwen 3.6-35B' against a passage writing 'Qwen3.6-35B' was a hard fail."""
+    from ragpipe.generation.citations import normalize_citation_markers
+    from ragpipe.generation.verify import judge_lexically
+
+    claim = normalize_citation_markers("made by the Qwen 3.6‑35B‑A3B model")
+    assert judge_lexically(claim, "we use Qwen3.6-35B-A3B-FP8 to produce views").numbers_ok
+
+
+def test_wrong_number_is_still_a_certain_fail():
+    from ragpipe.generation.verify import judge_lexically
+
+    j = judge_lexically("accuracy was 91.2%", "accuracy was 88.4% on the test set")
+    assert j.certain_fail and j.missing_numbers == {"91.2"}

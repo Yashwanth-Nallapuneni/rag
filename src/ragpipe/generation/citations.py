@@ -52,9 +52,30 @@ _SUSPECT_MARKER_RE = re.compile(
 )
 
 
+# Typographic characters gpt-oss-120b emits and every parser downstream
+# assumes are ASCII. Each broke a real answer in the 40-pair pilot:
+#   U+200B inside a marker, "[\u200bS2]"    -> citation invisible, 0% support
+#   U+201D before a marker, '.\u201d [S1]'  -> two claims merged into one
+#   U+2011 / U+202F in "Qwen\u202f3.6\u20113" -> numbers split oddly
+_ZERO_WIDTH_RE = re.compile("[\u200b\u200c\u200d\u2060\ufeff]")
+_TYPOGRAPHY = str.maketrans({
+    **{c: " " for c in "\u00a0\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f"},
+    **{c: "-" for c in "\u2010\u2011\u2012\u2013\u2212"},
+    "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+})
+
+
+def normalize_typography(text: str) -> str:
+    """Map invisible and typographic characters to their ASCII equivalents.
+    Deliberately leaves the em dash (U+2014) alone: it is punctuation, not a
+    hyphen, and turning it into '-' would glue words together."""
+    return _ZERO_WIDTH_RE.sub("", text).translate(_TYPOGRAPHY)
+
+
 def normalize_citation_markers(text: str) -> str:
-    """Rewrite fullwidth/CJK bracket citation markers to ASCII [S<n>]."""
-    return _FULLWIDTH_MARKER_RE.sub(lambda m: f"[S{m.group(1)}]", text)
+    """Normalise typography, then rewrite fullwidth/CJK bracket citation
+    markers to ASCII [S<n>]."""
+    return _FULLWIDTH_MARKER_RE.sub(lambda m: f"[S{m.group(1)}]", normalize_typography(text))
 
 
 def has_suspect_markers(text: str) -> bool:

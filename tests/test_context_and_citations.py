@@ -258,3 +258,25 @@ def test_suspect_marker_detection():
     assert has_suspect_markers("text 【1】")
     assert has_suspect_markers("text (S2)")
     assert not has_suspect_markers("proper [S1] citation")
+
+
+# Captured from gpt-oss-120b on OpenRouter during the 40-pair pilot eval.
+def test_zero_width_space_inside_marker_still_cites():
+    from ragpipe.generation.citations import normalize_citation_markers, split_claims
+
+    claims = split_claims(normalize_citation_markers("Score of 74.57 [​S2]."))
+    assert [c.markers for c in claims] == [[2]]
+
+
+def test_curly_quote_before_marker_keeps_claims_separate():
+    from ragpipe.generation.citations import normalize_citation_markers, split_claims
+
+    text = "They “focus on the answer.” [S2] Next claim here [S1]."
+    claims = split_claims(normalize_citation_markers(text))
+    assert [c.markers for c in claims] == [[2], [1]]
+
+
+def test_typography_keeps_em_dash():
+    from ragpipe.generation.citations import normalize_typography
+
+    assert normalize_typography("a—b‑c d") == "a—b-c d"

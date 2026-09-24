@@ -107,6 +107,21 @@ def _numbers(text: str) -> set[str]:
     return out
 
 
+_ANY_NUM_RE = re.compile(r"\d+(?:\.\d+)?")
+
+
+def _evidence_numbers(text: str) -> set[str]:
+    """Every number the evidence contains, including ones embedded in an
+    identifier. The claim side stays strict (only quantities it asserts);
+    the evidence side must be inclusive, or "Qwen 3.6-35B" in an answer is
+    rejected against a passage writing "Qwen3.6-35B" -- the digits are glued
+    to letters there, so the strict pattern never sees 3.6 at all."""
+    out = _numbers(text)
+    for raw in _ANY_NUM_RE.findall(text):
+        out.add(f"{float(raw):g}")
+    return out
+
+
 def _negations(text: str) -> set[str]:
     return {
         w.lower().replace("'", "")
@@ -136,7 +151,7 @@ def judge_lexically(claim: str, evidence: str) -> LexicalJudgement:
     )
 
     claim_numbers = _numbers(claim)
-    missing = claim_numbers - _numbers(evidence)
+    missing = claim_numbers - _evidence_numbers(evidence)
 
     claim_neg = bool(_negations(claim))
     evidence_neg = bool(_negations(evidence))

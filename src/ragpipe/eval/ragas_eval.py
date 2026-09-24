@@ -627,6 +627,28 @@ def run_evaluation(
         "metrics_requested": metric_names,
         "ragas": ragas_result,
         "refusal_accuracy": refusal_stats.as_dict(),
+        # Per-sample outcomes: without them a false refusal can be counted
+        # but not diagnosed.
+        "samples": [
+            {
+                "id": qa.id,
+                "category": qa.category,
+                "unanswerable": qa.unanswerable,
+                "status": getattr(ans.status, "value", str(ans.status)),
+                "refusal_reason": ans.refusal_reason,
+                "top_rerank_score": max(
+                    (c.rerank_score for c in ans.contexts if c.rerank_score is not None),
+                    default=None,
+                ),
+                "claims": [
+                    {"claim": v.claim, "supported": v.supported,
+                     "score": v.support_score, "reason": v.reason}
+                    for v in ans.claim_verdicts
+                ],
+                "answer": ans.text,
+            }
+            for qa, ans in zip(selected, answers)
+        ],
         "excluded_from_faithfulness_relevancy": {
             "count": excluded_refused,
             "reason": "refused answers have no claims/answer to grade -- see module docstring",
