@@ -1,6 +1,6 @@
 # Project state and handoff
 
-Last updated: 2026-09-19. **274 passed** (offline, no API key).
+Last updated: 2026-09-24. **317 passed** (offline, no API key). OpenRouter spend to date: about $0.25 of the $5 cap.
 
 This file exists so a fresh session can resume without re-deriving anything or
 undoing a decision that was made for a measured reason. Read it before changing
@@ -85,19 +85,18 @@ Mermaid architecture diagrams cannot be seen or verified until it is public.
 
 ## 4. Blocked on the project owner
 
-1. **OpenRouter key** in `.env` as `OPENROUTER_API_KEY`. Groq's free tier
-   cannot produce the spec's numbers (§7). Projected total spend ~$2.
-2. **Make the GitHub repo public.**
-3. **1-2 hours reviewing the golden set** -- DRAFTED, waiting on review:
-   `eval/golden_dataset.jsonl`, 180 pairs (153 answerable, 27 unanswerable),
-   drafted by `qwen/qwen3.8-27b` on Groq. Run
-   `PYTHONPATH=src .venv/bin/streamlit run scripts/review_golden.py`.
-   Review targets: one duplicate pair ("What is On-Demand Attention?", reject
-   one); vague questions that name no paper (see the lowest scores in
-   `eval_results/gate_calibration_*.json`); and each in-domain unanswerable
-   probe must be checked as truly absent from its paper. `load_verified()`
-   returns only human-approved pairs and a fresh file yields zero — so this
-   cannot be faked, and must not be worked around.
+Done by the owner: OpenRouter key in `.env` and as the `OPENROUTER_API_KEY`
+GitHub secret; repo is public.
+
+**The only blocker left: review the golden set (~45 min).**
+`eval/golden_dataset.jsonl`, 180 pairs (153 answerable, 27 unanswerable).
+Run `PYTHONPATH=src .venv/bin/streamlit run scripts/review_golden.py`.
+An LLM pre-screen (`eval/golden_prescreen.jsonl`) flags 39 pairs as suspect
+and the UI shows them first, with reasons. It is advisory: it never writes
+the ledger, and `load_verified()` returns only human-approved pairs, so this
+cannot be faked and must not be worked around. Trust its duplicate and
+"paper answers this after all" flags; treat "not standalone" as a prompt to
+re-read the question.
 
 ---
 
@@ -105,14 +104,19 @@ Mermaid architecture diagrams cannot be seen or verified until it is public.
 
 ```
 1. Owner verifies the 180 drafts (need >= 150 approved)         scripts/review_golden.py
-2. Re-run the gate calibration on VERIFIED pairs                 scripts/calibrate_gate.py
-3. Diagnose enforcement false refusals on real generations      (§6)
-4. First real eval run                                           scripts/run_eval.py
-5. Tune fusion weights against the golden set                    (closes deviation 1)
-6. Before/after reranking faithfulness  (--rerank / --no-rerank, same dataset+judge)
-7. Push, open a PR, capture the CI screenshot
-8. Fill the resume bullet's measured X
+2. Re-run gate calibration on VERIFIED pairs                     scripts/calibrate_gate.py
+3. Fusion tuning on VERIFIED pairs                               scripts/tune_fusion.py
+4. Full eval on verified pairs  (the spec's numbers)             scripts/run_eval.py
+5. Before/after reranking faithfulness  (--rerank / --no-rerank, same dataset+judge)
+6. Revisit the 7 remaining pilot false refusals on verified data (§6)
+7. PR with the numbers, CI screenshot, fill the resume bullet's X
 ```
+
+Run config for every paid run (OpenRouter):
+`RAGPIPE_LLM__PROVIDER=openrouter RAGPIPE_LLM__MODEL=openai/gpt-oss-120b
+RAGPIPE_LLM__REASONING_EFFORT=low RAGPIPE_LLM__MAX_TOKENS=1400`, then
+`--judge-provider openrouter --judge-model meta-llama/llama-3.3-70b-instruct
+--ragas-workers 2`. A 40-pair run costs ~$0.07, so 150 pairs ~$0.26.
 
 ---
 
@@ -150,6 +154,23 @@ body chunks makes the task document identification, which each paper's
 distinctive jargon settles trivially. Full reasoning in
 `docs/retrieval_findings.md`. Tune against the golden set instead.
 
+**Pilot false refusals, 40 unverified pairs: 13 -> 10 -> 7**, with zero
+unanswerable questions wrongly answered throughout. Every fix was in parsing,
+none in thresholds: `【S1†L1-L4】` markers, "U.S." as a sentence end,
+zero-width and narrow spaces inside markers, curly quotes, numbers glued to
+identifiers, and a Unicode minus in the passages. Of the remaining 7: 3 are
+the model itself declining (INSUFFICIENT_CONTEXT), and 4 contain a genuinely
+uncited sentence, which the traceability rule is right to reject. Both are
+policy questions to settle on VERIFIED data, not by loosening on drafts.
+
+**Fusion weights: data says keep 0.5/0.5 RRF.** `scripts/tune_fusion.py`
+(retrieval-only, $0) tunes on a 60% split and changes the config only if the
+held-out gain's 95% bootstrap CI is entirely above 0. With rerank on
+(production), the best tune-split config lost 0.033 Recall@5 on test (CI
+[-0.10, +0.03]). With rerank off, RRF 0.1/0.9 toward BM25 won clearly, which
+is the lexical bias from §6 again: the drafts were written from their chunks.
+Re-run on verified pairs before calling deviation 1 closed.
+
 **Enforcement thresholds were also implicitly tuned to an extractive mock**,
 which copies sentences verbatim and scores ~1.0 coverage. Real models
 paraphrase. If false refusals appear, prefer fixing escalation to the LLM judge
@@ -159,29 +180,24 @@ over lowering `min_supported_ratio`.
 
 ## 7. Provider facts, measured on a live key
 
+- **OpenRouter is the paid path.** Generation `openai/gpt-oss-120b`
+  ($0.15/$0.60 per M), judge `meta-llama/llama-3.3-70b-instruct`
+  ($0.10/$0.32). Different families, so the judge never grades its own
+  family. Prices in `cost.py` were verified against the live
+  `/api/v1/models` on 2026-09-23; the earlier Qwen "estimate" had been 2-5x
+  too low. Re-verify before large runs.
 - **A published price is not evidence a model exists for your key.**
-  `llama-3.3-70b-versatile` appears in every Groq pricing write-up and returns
-  404 on this account. Always check `client.models.list()`.
-- **13 models available:** `openai/gpt-oss-120b`, `openai/gpt-oss-20b`,
-  `openai/gpt-oss-safeguard-20b`, `qwen/qwen3.8-27b`, `groq/compound`,
-  `groq/compound-mini`, `allam-2-7b`, plus whisper/prompt-guard models.
-- **Generation:** `openai/gpt-oss-120b`. It is a *reasoning* model — a
-  three-word answer cost 148 reasoning + 15 content tokens, and at
-  `max_tokens=40` the whole budget went to reasoning, returning empty content.
-  Keep `max_tokens` generous (1400 used) and set
-  `RAGPIPE_LLM__REASONING_EFFORT=low` (~40% fewer reasoning tokens, identical
-  verdicts).
-- **Judge:** `qwen/qwen3.8-27b`. Different family from the generator (so the
-  judge stays independent), no reasoning overhead (86 output tokens vs 279),
-  and a far higher free-tier token-per-minute ceiling.
-- **Groq free tier is too small for the spec.** `gpt-oss-120b` allows 30 RPM /
-  1K RPD / 8K TPM / **200K TPD**, and one eval sample is ~14,251 tokens:
-  14 pairs ≈ 25 min of calling but a full day's quota; 50 pairs ≈ 3.6 days;
-  150 pairs ≈ 10.7 days. A 40-pair CI gate is 2.9× over the daily cap, so
-  spec 3.3 ("every pull request") is impossible on free.
-- **Prices for `qwen/qwen3.8-27b` and `openai/gpt-oss-20b` in
-  `DEFAULT_PRICES` are UNVERIFIED estimates.** Confirm against live pricing
-  before any paid run, or override via `RAGPIPE_EVAL_PRICES`.
+  `llama-3.3-70b-versatile` is in every Groq price list and 404s on this
+  account.
+- **gpt-oss-120b is a reasoning model.** At `max_tokens=40` the whole budget
+  went to reasoning and the content came back empty. Keep 1400 and
+  `REASONING_EFFORT=low`.
+- **It writes typographic Unicode everywhere**: `【S1†L1-L4】`, `[\u200bS2]`,
+  `[\u202fS1\u202f]`, U+2011 hyphens, curly quotes. All handled by
+  `normalize_typography` + marker normalisation. A new marker shape shows
+  up as a 0% support refusal with top rerank scores > 4; check raw output first.
+- **Groq free tier (200K tokens/day) cannot run the spec's evals**: 150
+  pairs would need ~10.7 days of quota. Useful only for free drafting.
 
 ---
 
@@ -201,6 +217,13 @@ Each has a regression test. Several were only findable with a real model.
 | RAGAS default concurrency + 180s timeout | All metrics NaN behind a rate-limited judge that is working fine |
 | Cost estimate assuming 1200 generation tokens | Under-estimates a hard budget; measured is 2840 |
 | Hardcoded provider lists in CLIs | Silently stale the moment a provider is added |
+| Refuse node dropping token usage | Post-generation refusals look pre-generation; cost under-reported (misdiagnosed the relevance gate once) |
+| Unanswerable probes drawn with replacement | 27 probes = 11 unique questions; refusal accuracy measured on repeats |
+| `【S1†L1-L4】`, `[ S1 ]`, zero-width chars in markers | Citations invisible -> 0% support -> refusal despite perfect retrieval |
+| "U.S." read as a sentence end | Content half loses its markers; one grounded claim scored 50% |
+| Strict number extraction on the evidence side / Unicode minus | "Qwen 3.6-35B" or "T^-1/2" fails as a figure "absent from the passage" -- a hard fail |
+| CI fetching the corpus by arXiv search | A cache miss builds this week's papers; the golden set is asked of the wrong corpus. Use `--from-manifest` |
+| Fusion `decide()` accepting a CI entirely below 0 | Recommends a significantly WORSE config |
 
 ---
 
@@ -236,7 +259,7 @@ python scripts/ci_gate.py <results.json> --baseline <previous.json>
 - Known-item Recall@1 — BM25 0.300 vs dense 0.060 on exact identifiers
 - Known-item Recall@1 — reranking lifts dense 0.256 → 0.483 (+89%)
 - Section-label noise 0.0% (was 3.6%)
-- 274 passed offline
+- 317 passed offline
 
 Call the retrieval figures **"known-item Recall@1"**, never "precision". The
 diagnostic is lexically biased and the honest framing is a strength: it shows
@@ -245,7 +268,7 @@ the limits of one's own benchmark.
 **NOT measured — must stay blank:**
 - Faithfulness, answer relevance, context precision/recall on the golden set
 - Before/after reranking faithfulness
-- Refusal accuracy (the 0.25 → 0.75 → 0.67 figures are 2-4 sample diagnostics)
+- Refusal accuracy (pilot figures 0.675 -> 0.75 -> 0.825 are 40 UNVERIFIED pairs: engineering diagnostics, not results)
 - The resume bullet's X
 
 The only real-judge RAGAS run so far graded **one** sample (faithfulness 1.000,
