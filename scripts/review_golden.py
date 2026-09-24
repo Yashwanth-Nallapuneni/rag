@@ -36,6 +36,10 @@ from ragpipe.eval.golden import (  # noqa: E402
     save_dataset,
     validate_dataset,
 )
+from ragpipe.eval.prescreen import (  # noqa: E402
+    default_prescreen_path,
+    load_prescreen,
+)
 from ragpipe.ingest.pipeline import read_chunks  # noqa: E402
 
 st.set_page_config(page_title="Golden dataset review", layout="wide")
@@ -90,10 +94,18 @@ def main() -> None:
         st.text_input("Dataset path", value=str(SETTINGS.evaluation.dataset), key="dataset_path")
         st.text_input("Reviewer name / initials", value="", key="reviewer")
         only_draft = st.checkbox("Show only draft pairs", value=True, key="only_draft")
+        suspect_first = st.checkbox(
+            "Suspect (pre-screen) first", value=True, key="suspect_first"
+        )
+        only_suspect = st.checkbox(
+            "Show only pre-screen suspect pairs", value=False, key="only_suspect"
+        )
         page = st.radio("View", ["Review", "Summary"], index=0)
 
     dataset_path = Path(st.session_state["dataset_path"])
     review_path = default_review_path(dataset_path)
+    prescreen_path = default_prescreen_path(dataset_path)
+    prescreen = load_prescreen(prescreen_path)  # {} if the sidecar is missing
 
     if not dataset_path.exists():
         st.warning(f"No dataset at {dataset_path} yet. Run scripts/draft_golden.py first.")
@@ -136,10 +148,26 @@ def main() -> None:
         )
         return
 
-    queue = sorted(
-        (qa for qa in pairs if not only_draft or review_status(qa.id, ledger) == "draft"),
-        key=lambda qa: qa.id,
-    )
+    def _is_suspect(pair_id: str) -> bool:
+        rec = prescreen.get(pair_id)
+        return bool(rec and rec.verdict == "suspect")
+
+    queue = [
+        qa
+        for qa in pairs
+        if (not only_draft or review_status(qa.id, ledger) == "draft")
+        and (not only_suspect or _is_suspect(qa.id))
+    ]
+    if suspect_first:
+        queue.sort(key=lambda qa: (0 if _is_suspect(qa.id) else 1, qa.id))
+    else:
+        queue.sort(key=lambda qa: qa.id)
+
+    if prescreen:
+        n_suspect = sum(1 for qa in pairs if _is_suspect(qa.id))
+        st.caption(f"Pre-screen: {len(prescreen)} / {total} screened, {n_suspect} flagged suspect.")
+    else:
+        st.caption("Pre-screen: no sidecar found -- run scripts/prescreen_golden.py for advisory flags.")
 
     if not queue:
         st.success("Nothing left to review with the current filter.")
@@ -162,6 +190,15 @@ def main() -> None:
 
     with col_q:
         st.markdown(f"**Category:** `{current.category}`")
+        prescreen_rec = prescreen.get(current.id)
+        if prescreen_rec is not None and prescreen_rec.verdict == "suspect":
+            st.warning(
+                "**Pre-screen flagged this pair (advisory only -- your decision "
+                "still controls verification):**\n\n"
+                + "\n".join(f"- {r}" for r in prescreen_rec.reasons)
+            )
+        elif prescreen_rec is not None:
+            st.caption(f"Pre-screen: ok (model: {prescreen_rec.model or 'unknown'})")
         if current.unanswerable:
             st.error(
                 "UNANSWERABLE candidate -- there is no source chunk. Confirm the "
