@@ -29,10 +29,10 @@ answers worse?*
 - Triggers: every PR (per spec), every push to `main`, and
   `workflow_dispatch` (manual re-run with custom `sample_size`,
   `judge_model`, `max_usd` inputs — see "Re-running by hand" below).
-- **Requires the `OPENAI_API_KEY` repository secret.** This is the judge
+- **Requires the `OPENROUTER_API_KEY` repository secret.** This is the judge
   model RAGAS uses to score faithfulness / relevancy / precision / recall.
   Add it under **Settings → Secrets and variables → Actions →
-  `OPENAI_API_KEY`**.
+  `OPENROUTER_API_KEY`**.
 - **If the secret is missing, the job fails immediately** with a clear
   `::error::` message, before any other step runs. This is deliberate: the
   alternative — quietly falling back to the mock judge, or skipping the eval
@@ -130,7 +130,7 @@ Use **Actions → eval → Run workflow** to trigger `workflow_dispatch`. You
 can override:
 
 - `sample_size` — how many golden-dataset questions to evaluate (default 20)
-- `judge_model` — which model RAGAS uses as judge (default `gpt-4o-mini`)
+- `judge_model` — which model RAGAS uses as judge (default `meta-llama/llama-3.3-70b-instruct` on OpenRouter; generation is `openai/gpt-oss-120b`)
 - `max_usd` — spending cap for the run (default `1.00`)
 
 This is useful for a full-dataset run, or to re-check quality after a

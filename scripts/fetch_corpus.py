@@ -17,7 +17,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from ragpipe.config import load_settings  # noqa: E402
-from ragpipe.ingest.arxiv_fetch import ArxivPaper, fetch_corpus  # noqa: E402
+from ragpipe.ingest.arxiv_fetch import ArxivPaper, fetch_corpus, restore_from_manifest  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -28,6 +28,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--out", type=Path, default=None, help="default: settings.corpus.raw_path")
     parser.add_argument("--manifest", type=Path, default=None, help="default: <processed_dir>/corpus_manifest.json")
     parser.add_argument("--delay", type=float, default=3.0, help="seconds between API/download requests")
+    parser.add_argument(
+        "--from-manifest",
+        action="store_true",
+        help="download exactly the papers in the manifest (pinned versions, sha256-checked) "
+        "instead of searching arXiv -- use this to reproduce the corpus, e.g. in CI",
+    )
     parser.add_argument("--dry-run", action="store_true", help="search only, do not download PDFs")
     args = parser.parse_args()
 
@@ -53,6 +59,14 @@ def _progress(event: str, **kw: object) -> None:
 
 def main() -> None:
     args = _parse_args()
+    if args.from_manifest:
+        result = restore_from_manifest(args.manifest, args.out, delay_s=args.delay)
+        print(f"restored={len(result['ok'])}  sha256_mismatch={result['mismatch']}  failed={result['failed']}")
+        if result["mismatch"] or result["failed"]:
+            # A partial or altered corpus would silently change what every
+            # golden-set question is asked against.
+            raise SystemExit(1)
+        return
     print(f"Fetching up to {args.count} papers from {', '.join(args.categories)}")
     print(f"  out={args.out}  manifest={args.manifest}  delay={args.delay}s  dry_run={args.dry_run}")
 

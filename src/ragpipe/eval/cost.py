@@ -39,8 +39,12 @@ DEFAULT_PRICES: dict[str, tuple[float, float]] = {
     # These two figures are UNVERIFIED estimates placed here only so the cost
     # guard has something to work with -- confirm against Groq's live pricing
     # before any paid run, or override with RAGPIPE_EVAL_PRICES.
-    "qwen/qwen3.8-27b": (0.20, 0.60),          # UNVERIFIED estimate
-    "openai/gpt-oss-20b": (0.10, 0.40),        # UNVERIFIED estimate
+    # Verified against openrouter.ai/api/v1/models on 2026-09-23. The
+    # earlier "estimates" here were 2-5x LOW -- a cost guard fed a low price
+    # is a cost guard that does not guard.
+    "qwen/qwen3.8-27b": (0.42, 3.00),
+    "openai/gpt-oss-20b": (0.018, 0.09),
+    "meta-llama/llama-3.3-70b-instruct": (0.10, 0.32),
     "gpt-5-nano": (0.05, 0.40),
     "claude-haiku-4-5": (1.00, 5.00),
     "claude-sonnet-5": (2.00, 10.00),

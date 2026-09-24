@@ -344,3 +344,48 @@ def _manifest_entry(paper: ArxivPaper, path: Path, data: bytes) -> dict[str, Any
     entry["sha256"] = hashlib.sha256(data).hexdigest()
     entry["bytes"] = len(data)
     return entry
+
+
+def restore_from_manifest(
+    manifest_path: Path,
+    dest_dir: Path,
+    *,
+    delay_s: float = 3.0,
+    client: httpx.Client | None = None,
+) -> dict[str, list[str]]:
+    """Download exactly the papers a versioned manifest lists, pinned to the
+    recorded PDF version, and check each file's sha256.
+
+    `fetch_corpus` searches arXiv for the newest papers, so running it on a
+    fresh machine (a CI cache miss) builds a *different* corpus -- and every
+    golden-set question would then be asked of papers it was never written
+    for. Reproducing the corpus means restoring it, not re-searching.
+    """
+    manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    owns_client = client is None
+    client = client or httpx.Client(headers={"User-Agent": USER_AGENT}, timeout=60.0, follow_redirects=True)
+    result: dict[str, list[str]] = {"ok": [], "mismatch": [], "failed": []}
+    try:
+        for paper in manifest["papers"]:
+            dest = dest_dir / f"{paper['arxiv_id']}.pdf"
+            try:
+                if not _is_valid_pdf(dest):
+                    _sleep(delay_s)
+                    resp = _request_with_retry(client, "GET", paper["pdf_url"])
+                    tmp = dest.with_suffix(".pdf.part")
+                    tmp.write_bytes(resp.content)
+                    tmp.replace(dest)
+            except Exception as exc:  # recorded, and the caller fails the run
+                result["failed"].append(paper["arxiv_id"])
+                continue
+            digest = hashlib.sha256(dest.read_bytes()).hexdigest()
+            expected = paper.get("sha256")
+            if expected and digest != expected:
+                result["mismatch"].append(paper["arxiv_id"])
+            else:
+                result["ok"].append(paper["arxiv_id"])
+    finally:
+        if owns_client:
+            client.close()
+    return result

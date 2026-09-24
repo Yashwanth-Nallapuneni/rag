@@ -9,7 +9,7 @@ name: eval
 # This is a separate workflow from tests.yml on purpose: it needs a real
 # corpus, a real vector index, and (unlike the offline test suite, which
 # runs entirely on the deterministic `mock` LLM) a real judge LLM behind
-# OPENAI_API_KEY, so it is slower and costs real money per run. Splitting
+# OPENROUTER_API_KEY, so it is slower and costs real money per run. Splitting
 # it out keeps the free/fast tests.yml badge green independently of this
 # one, and keeps this one's badge meaning something specific: answer
 # quality, not "tests passed".
@@ -24,9 +24,9 @@ on:
         required: false
         default: "20"
       judge_model:
-        description: "LLM used as the RAGAS judge"
+        description: "LLM used as the RAGAS judge (OpenRouter model id)"
         required: false
-        default: "gpt-4o-mini"
+        default: "meta-llama/llama-3.3-70b-instruct"
       max_usd:
         description: "Hard spending cap passed to --max-usd"
         required: false
@@ -47,7 +47,14 @@ concurrency:
 
 env:
   SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '20' }}
-  JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'gpt-4o-mini' }}
+  JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'meta-llama/llama-3.3-70b-instruct' }}
+  # Generation and judge are different model families on purpose, so the
+  # judge is not grading its own family's output. Prices are verified live
+  # in src/ragpipe/eval/cost.py; see docs/STATE.md section 7.
+  RAGPIPE_LLM__PROVIDER: openrouter
+  RAGPIPE_LLM__MODEL: openai/gpt-oss-120b
+  RAGPIPE_LLM__REASONING_EFFORT: low
+  RAGPIPE_LLM__MAX_TOKENS: "1400"
   MAX_USD: ${{ github.event.inputs.max_usd || '1.00' }}
   DATASET_PATH: eval/golden_dataset.jsonl
   BASELINE_JSON: eval_results/baseline.json
@@ -67,12 +74,12 @@ jobs:
       # evaluation having happened, which is exactly the false claim the
       # spec warns against. A missing secret is a repo misconfiguration,
       # not a reason to look green.
-      - name: Require OPENAI_API_KEY
+      - name: Require OPENROUTER_API_KEY
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "::error::OPENAI_API_KEY secret is not set. The answer-quality gate cannot run without a real judge model -- add it under Settings > Secrets and variables > Actions > OPENAI_API_KEY. Refusing to pass by silently substituting the mock judge, since that would report a quality score that was never actually measured."
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::error::OPENROUTER_API_KEY secret is not set. The answer-quality gate cannot run without a real judge model -- add it under Settings > Secrets and variables > Actions > OPENROUTER_API_KEY. Refusing to pass by silently substituting the mock judge, since that would report a quality score that was never actually measured."
             exit 1
           fi
 
@@ -148,11 +155,13 @@ jobs:
 
       - name: Fetch corpus (cache miss)
         if: steps.cache-corpus.outputs.cache-hit != 'true'
+        # Restores the manifest's exact, pinned papers (sha256-checked); a fresh
+        # search would return this week's papers and break the golden set.
         # Deliberately not parallelised: fetch_corpus.py respects arXiv's
         # ~1 req/3s rate-limit policy. ~40 papers -> ~4 minutes. This only
         # runs when the manifest-keyed cache above misses (first run, or a
         # corpus change), not on every PR.
-        run: python scripts/fetch_corpus.py --count 40
+        run: python scripts/fetch_corpus.py --from-manifest
 
       # --- chunk + index (rebuild is cheap-ish; only pay it on a real miss) -
       - name: Cache chunked corpus + vector index
@@ -204,13 +213,14 @@ jobs:
       - name: Run evaluation against the golden dataset
         id: run_eval
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           set +e
           mkdir -p eval_results
           python scripts/run_eval.py \
             --dataset "$DATASET_PATH" \
             --sample-size "$SAMPLE_SIZE" \
+            --judge-provider openrouter \
             --judge-model "$JUDGE_MODEL" \
             --max-usd "$MAX_USD" \
             --yes 2>&1 | tee eval_results/run_eval.log
