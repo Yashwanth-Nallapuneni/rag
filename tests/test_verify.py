@@ -220,3 +220,41 @@ def test_factory_honours_config(settings):
 def test_factory_returns_none_when_enforcement_is_off(settings):
     settings.citation.enforce = False
     assert get_verifier(settings) is None
+
+
+# --- regression: real gpt-oss-120b output via OpenRouter -----------------
+#
+# These are the raw shapes captured live from openai/gpt-oss-120b on
+# OpenRouter (see docs/STATE.md). The answer text itself is normalisation's
+# job (test_context_and_citations.py); these confirm the *verifier* end of
+# the same bug -- a fully grounded, well-cited answer must not be scored as
+# unsupported once the marker/claim-splitting bugs are fixed upstream.
+
+
+def test_lexical_scores_fullwidth_marker_with_line_range_suffix(lexical):
+    """The model cited as 【S1†L1-L4】, not the bare 【S1】 the earlier CJK
+    fix covered. Before the fix this looked uncited and scored 0%."""
+    answer = (
+        "The Transformer uses multi-head self-attention instead of "
+        "recurrence【S1†L1-L4】."
+    )
+    verdicts, ratio = lexical.verify(answer, _rendered(), "q")
+    assert ratio == 1.0
+    assert verdicts[0].supported
+    assert verdicts[0].cited_chunk_ids
+
+
+def test_lexical_does_not_split_on_us_style_initialism(lexical):
+    """The model's answer ended '...during the 2024 U.S. presidential
+    election[S1]' with no other terminal punctuation. Before the fix, the
+    period in 'U.S.' split the claim in two: the half with the real content
+    lost its citation and scored unsupported, and the true ratio of 100%
+    measured as 50%."""
+    answer = (
+        "This allows significantly more parallelization during training "
+        "in the U.S. and beyond【S1】"
+    )
+    verdicts, ratio = lexical.verify(answer, _rendered(), "q")
+    assert len(verdicts) == 1
+    assert ratio == 1.0
+    assert verdicts[0].supported

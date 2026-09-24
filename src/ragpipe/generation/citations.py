@@ -33,8 +33,16 @@ _MARKER_RE = re.compile(r"\[S(\d{1,3})\]")
 # attributed. Normalisation is deliberately narrow: only a bracket pair
 # wrapping an S-marker is rewritten, so a fullwidth bracket appearing in
 # quoted source text is left alone.
+# On OpenRouter, the same model also cites as \u3010S1\u2020L1-L4\u3011 -- a ChatGPT-style
+# "browsing" annotation with a dagger and a line range glued onto the marker.
+# The original pattern required the closing bracket immediately after the
+# digits, so this shape matched neither the ASCII nor the fullwidth regex,
+# every sentence was uncited, and support came out at 0% -- same failure
+# mode as the CJK-bracket bug, different suffix. The middle group is now
+# "anything that is not a closing bracket", so both a bare \u3010S1\u3011 and a
+# \u3010S1\u2020L1-L4\u3011 collapse to [S1].
 _FULLWIDTH_MARKER_RE = re.compile(
-    r"[\u3010\uff3b\u3014\ufe5d\u2045]\s*[Ss]\s*(\d{1,3})\s*[\u3011\uff3d\u3015\ufe5e\u2046]"
+    r"[\u3010\uff3b\u3014\ufe5d\u2045]\s*[Ss]\s*(\d{1,3})[^\u3011\uff3d\u3015\ufe5e\u2046]*[\u3011\uff3d\u3015\ufe5e\u2046]"
 )
 # Signals that a model tried to cite but in a shape we do not accept. Logged
 # rather than silently swallowed, because the failure mode is a 100% refusal
@@ -57,7 +65,22 @@ def has_suspect_markers(text: str) -> bool:
 # sentence boundaries alone attributes "...recurrence. [1] Next..." to the
 # wrong sentence -- the [1] lands at the head of the next claim, so every
 # claim is then verified against the passage belonging to its neighbour.
-_ABBREV = r"(?<!\be\.g)(?<!\bi\.e)(?<!\bet\sal)(?<!\bcf)(?<!\bvs)(?<!\bFig)(?<!\bEq)(?<!\bSec)"
+#
+# "U.S." was a real false split: gpt-oss-120b answered "...from TikTok,
+# Twitter/X, and Truth Social during the 2024 U.S. presidential election
+# [S1][S2]" with no other terminal punctuation. The period in "U.S." is
+# followed by whitespace, so it satisfied the terminator lookahead and the
+# claim broke there -- the half with the real content lost its markers, the
+# trailing half ("presidential election") kept them and passed trivially,
+# and the true support ratio (one grounded claim) was reported as 50%.
+# `(?<!\b[A-Za-z]\.[A-Za-z])` generalises the fix beyond one hardcoded
+# abbreviation: it refuses to break after the second letter of any
+# single-letter-dot-single-letter initialism ("U.S.", "U.K.", "e.g" already
+# covered explicitly below for clarity/backcompat).
+_ABBREV = (
+    r"(?<!\be\.g)(?<!\bi\.e)(?<!\bet\sal)(?<!\bcf)(?<!\bvs)(?<!\bFig)(?<!\bEq)(?<!\bSec)"
+    r"(?<!\b[A-Za-z]\.[A-Za-z])"
+)
 # A sentence terminator only counts when whitespace or end-of-text follows it.
 # Without `(?=\s|$)` every dot inside an email address or dotted identifier is
 # a sentence break: an author block like "Chenxi.Wu25 ... @student.xjtlu.edu.cn"

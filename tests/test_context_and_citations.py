@@ -4,6 +4,7 @@ import pytest
 
 from ragpipe.generation.citations import (
     extract_markers,
+    normalize_citation_markers,
     resolve_citations,
     split_claims,
     strip_markers,
@@ -197,6 +198,47 @@ def test_fullwidth_cjk_brackets_are_normalised():
 )
 def test_bracket_variants_resolve(opener, closer):
     assert extract_markers(f"grounded {opener}S3{closer}") == [3]
+
+
+def test_fullwidth_marker_with_line_range_suffix_is_normalised():
+    """Regression, found only by running a real model against OpenRouter:
+    gpt-oss-120b there cites as 【S1†L1-L4】 -- a ChatGPT-style "browsing"
+    annotation with a dagger and line range glued onto the marker, not the
+    bare 【S1】 seen elsewhere. The old fullwidth pattern required the
+    closing bracket immediately after the digits, so this shape matched
+    neither the ASCII nor the fullwidth regex: every sentence in the answer
+    was uncited, support came out at 0%, and answerable questions with
+    excellent retrieval (rerank scores 5.46, 4.97) were refused as
+    'only 0% of claims are supported'."""
+    text = (
+        "ActObs modifies the loss mask so observation tokens are also "
+        "trained on【S1†L1-L4】【S2†L1-L5】."
+    )
+    normalised = normalize_citation_markers(text)
+    assert "[S1]" in normalised and "[S2]" in normalised
+    assert extract_markers(text) == [1, 2]
+    claims = split_claims(text)
+    assert len(claims) == 1 and claims[0].markers == [1, 2]
+
+
+def test_us_style_initialism_is_not_a_sentence_boundary():
+    """Regression, found running gpt-oss-120b via OpenRouter: an answer
+    ending '...during the 2024 U.S. presidential election[S1][S2]' with no
+    other terminal punctuation. 'U.S.' has a period followed by whitespace,
+    which the old abbreviation list did not special-case, so the claim
+    split there -- the half with the actual content lost its citations, the
+    trailing fragment ('presidential election') kept them and passed
+    trivially, and a fully-grounded answer measured as only 50% supported."""
+    text = (
+        "The corpus contains 2.8M annotated posts from TikTok, Twitter/X, "
+        "and Truth Social during the 2024 U.S. presidential election"
+        "【S1】【S2】"
+    )
+    claims = split_claims(text)
+    assert len(claims) == 1
+    assert claims[0].markers == [1, 2]
+    assert "U.S." in claims[0].text
+    assert "presidential election" in claims[0].text
 
 
 def test_normalisation_is_narrow_enough_not_to_touch_quoted_text():
