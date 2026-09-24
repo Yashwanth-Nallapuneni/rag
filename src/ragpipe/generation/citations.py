@@ -65,6 +65,9 @@ _TYPOGRAPHY = str.maketrans({
 })
 
 
+_SPACED_MARKER_RE = re.compile(r"\[[ \t]*[Ss][ \t]*(\d{1,3})[ \t]*\]")
+
+
 def normalize_typography(text: str) -> str:
     """Map invisible and typographic characters to their ASCII equivalents.
     Deliberately leaves the em dash (U+2014) alone: it is punctuation, not a
@@ -75,7 +78,10 @@ def normalize_typography(text: str) -> str:
 def normalize_citation_markers(text: str) -> str:
     """Normalise typography, then rewrite fullwidth/CJK bracket citation
     markers to ASCII [S<n>]."""
-    return _FULLWIDTH_MARKER_RE.sub(lambda m: f"[S{m.group(1)}]", normalize_typography(text))
+    text = _FULLWIDTH_MARKER_RE.sub(lambda m: f"[S{m.group(1)}]", normalize_typography(text))
+    # "[\u202fS1\u202f]" arrives as "[ S1 ]" once typography is normalised;
+    # 6 of the pilot's 10 remaining false refusals were exactly this.
+    return _SPACED_MARKER_RE.sub(lambda m: f"[S{m.group(1)}]", text)
 
 
 def has_suspect_markers(text: str) -> bool:

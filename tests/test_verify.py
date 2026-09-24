@@ -274,3 +274,10 @@ def test_wrong_number_is_still_a_certain_fail():
 
     j = judge_lexically("accuracy was 91.2%", "accuracy was 88.4% on the test set")
     assert j.certain_fail and j.missing_numbers == {"91.2"}
+
+
+def test_unicode_minus_in_evidence_matches_ascii_claim():
+    from ragpipe.generation.verify import judge_lexically
+
+    assert judge_lexically("attains the rate T^-1/2", "attains the rate T−1/2").numbers_ok
+    assert not judge_lexically("drops by -3.5 points", "drops by 2.5 points").numbers_ok

@@ -37,7 +37,7 @@ from ..logging_utils import get_logger
 from ..prompts import load_prompt
 from ..providers import LLMRequest, get_llm
 from ..schemas import ClaimVerdict, RetrievedChunk
-from .citations import Claim, cited_chunks, split_claims
+from .citations import Claim, cited_chunks, normalize_typography, split_claims
 from .context import RenderedContext
 
 log = get_logger(__name__)
@@ -107,7 +107,7 @@ def _numbers(text: str) -> set[str]:
     return out
 
 
-_ANY_NUM_RE = re.compile(r"\d+(?:\.\d+)?")
+_ANY_NUM_RE = re.compile(r"-?\d+(?:\.\d+)?")
 
 
 def _evidence_numbers(text: str) -> set[str]:
@@ -118,7 +118,11 @@ def _evidence_numbers(text: str) -> set[str]:
     to letters there, so the strict pattern never sees 3.6 at all."""
     out = _numbers(text)
     for raw in _ANY_NUM_RE.findall(text):
+        # Both the signed and unsigned reading: in "T-1/2" the dash is an
+        # exponent sign, in "3.6-35B" a separator. Inclusive is the safe
+        # direction here -- the claim side decides what is asserted.
         out.add(f"{float(raw):g}")
+        out.add(f"{abs(float(raw)):g}")
     return out
 
 
@@ -144,6 +148,10 @@ class LexicalJudgement:
 
 
 def judge_lexically(claim: str, evidence: str) -> LexicalJudgement:
+    # Both sides, not just the model's: papers write "T\u22121/2" with a
+    # Unicode minus, and an ASCII claim "T^-1/2" then "cites a figure absent
+    # from the passage" -- a certain fail no judge can overturn.
+    claim, evidence = normalize_typography(claim), normalize_typography(evidence)
     claim_words = _content_words(claim)
     evidence_words = _content_words(evidence)
     coverage = (

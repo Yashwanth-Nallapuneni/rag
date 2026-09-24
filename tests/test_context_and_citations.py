@@ -280,3 +280,13 @@ def test_typography_keeps_em_dash():
     from ragpipe.generation.citations import normalize_typography
 
     assert normalize_typography("a—b‑c d") == "a—b-c d"
+
+
+def test_spaced_ascii_marker_is_a_citation():
+    """'[ S1 ]' became '[ S1 ]' -- 6 of 10 pilot false refusals."""
+    from ragpipe.generation.citations import normalize_citation_markers, split_claims
+
+    text = "ECHO adds a loss weight of 0.05 during GRPO [ S1 ][ S4 ]."
+    assert [c.markers for c in split_claims(normalize_citation_markers(text))] == [[1, 4]]
+    # the paper's own "[ 3 ]" is still not ours
+    assert split_claims(normalize_citation_markers("A list [ 3 ] here [S1]."))[0].markers == [1]
