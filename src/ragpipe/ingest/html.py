@@ -220,10 +220,6 @@ class HTMLParser:
             )
             order += 1
 
-        # Skip descending into nodes already handled as a unit (table, pre,
-        # list) so their inner tags don't get re-emitted as paragraphs.
-        skip_children: set[int] = set()
-
         def visit(node: Tag) -> None:
             for child in node.children:
                 if isinstance(child, NavigableString):

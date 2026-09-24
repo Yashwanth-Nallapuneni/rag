@@ -19,7 +19,7 @@ import json
 import re
 import time
 import xml.etree.ElementTree as ET
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -278,7 +278,7 @@ def fetch_corpus(
                 emit("dry_run", paper=p)
             return {
                 "corpus": "arxiv-ml",
-                "fetched_at": datetime.now(timezone.utc).isoformat(),
+                "fetched_at": datetime.now(UTC).isoformat(),
                 "categories": categories,
                 "count": len(papers),
                 "papers": [],
@@ -322,7 +322,7 @@ def fetch_corpus(
 
     manifest = {
         "corpus": "arxiv-ml",
-        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
         "categories": categories,
         "count": len(manifest_papers),
         "papers": manifest_papers,
@@ -376,7 +376,7 @@ def restore_from_manifest(
                     tmp = dest.with_suffix(".pdf.part")
                     tmp.write_bytes(resp.content)
                     tmp.replace(dest)
-            except Exception as exc:  # recorded, and the caller fails the run
+            except Exception:  # recorded, and the caller fails the run
                 result["failed"].append(paper["arxiv_id"])
                 continue
             digest = hashlib.sha256(dest.read_bytes()).hexdigest()

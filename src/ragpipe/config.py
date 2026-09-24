@@ -85,7 +85,7 @@ class ChunkingConfig(BaseModel):
     tokenizer: str = "cl100k_base"
 
     @model_validator(mode="after")
-    def _check_overlap(self) -> "ChunkingConfig":
+    def _check_overlap(self) -> ChunkingConfig:
         if self.chunk_overlap >= self.chunk_size:
             raise ValueError("chunk_overlap must be smaller than chunk_size")
         if not 200 <= self.chunk_size <= 2000:
@@ -137,7 +137,7 @@ class RetrievalConfig(BaseModel):
     bm25: BM25Config = Field(default_factory=BM25Config)
 
     @model_validator(mode="after")
-    def _check(self) -> "RetrievalConfig":
+    def _check(self) -> RetrievalConfig:
         if self.top_k > self.candidate_k:
             raise ValueError("top_k cannot exceed candidate_k")
         return self

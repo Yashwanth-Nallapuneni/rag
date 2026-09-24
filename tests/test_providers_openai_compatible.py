@@ -14,6 +14,12 @@ import types
 import pytest
 
 from ragpipe.config import load_settings
+from ragpipe.eval.cost import (
+    UnknownModelPrice,
+    estimate_run_feasibility,
+    load_price_table,
+    resolve_price,
+)
 from ragpipe.providers import MissingCredentialsError, ProviderError, get_llm
 from ragpipe.providers.llm.openai_compatible import (
     QuotaExhaustedError,
@@ -21,8 +27,6 @@ from ragpipe.providers.llm.openai_compatible import (
     _classify_429,
     _retry_after_seconds,
 )
-from ragpipe.eval.cost import UnknownModelPrice, resolve_price, load_price_table, estimate_run_feasibility
-
 
 # ---------------------------------------------------------------------------
 # 1. Registry: missing credentials name the right env var

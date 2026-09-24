@@ -104,7 +104,7 @@ def test_real_corpus_overlap_and_budget():
     pairs = overlapping = 0
     for docs in by_doc.values():
         docs.sort(key=lambda c: c.chunk_index)
-        for a, b in zip(docs, docs[1:]):
+        for a, b in zip(docs, docs[1:], strict=False):
             pairs += 1
             if shingles(a.text) & shingles(b.text):
                 overlapping += 1

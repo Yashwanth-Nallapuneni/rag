@@ -109,6 +109,7 @@ PyPika==0.51.1
 pyproject_hooks==1.3.3
 pytest==9.1.1
 pytest-cov==7.1.0
+ruff==0.16.8  # lint step in tests.yml; was only a dev extra, so CI failed with "command not found"
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.3
 python-multipart==0.0.32

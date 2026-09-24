@@ -115,7 +115,7 @@ class _RawBlock:
         return self.bbox[3]
 
 
-def _extract_raw_blocks(page: "pymupdf.Page", page_num: int) -> list[_RawBlock]:
+def _extract_raw_blocks(page: pymupdf.Page, page_num: int) -> list[_RawBlock]:
     """Pull text blocks with bbox + dominant font size/weight from a page.
 
     Uses `get_text("dict")` rather than `get_text("blocks", sort=True)`
@@ -170,8 +170,8 @@ _ORDINAL_FURNITURE_MAX_CHARS = 100
 
 
 def _furniture_zone(
-    blk: "_RawBlock",
-    page_blocks: list["_RawBlock"],
+    blk: _RawBlock,
+    page_blocks: list[_RawBlock],
     top_y: float,
     bot_y: float,
 ) -> str | None:

@@ -25,7 +25,7 @@ class Retriever(Protocol):
     ) -> list[RetrievedChunk]: ...
 
 
-def get_retriever(settings: "Settings", store: "VectorStore") -> Retriever:
+def get_retriever(settings: Settings, store: VectorStore) -> Retriever:
     mode = settings.retrieval.mode
     if mode == "dense":
         from .dense import DenseRetriever

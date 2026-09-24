@@ -17,7 +17,6 @@ from the function this replaces. The graph is compiled once per `Answerer`
 from __future__ import annotations
 
 import re
-
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -28,8 +27,9 @@ from ..schemas import AnswerStatus, Citation, ClaimVerdict, RetrievedChunk
 from .citations import (
     has_suspect_markers,
     normalize_citation_markers,
+    resolve_citations,
+    split_claims,
 )
-from .citations import resolve_citations, split_claims
 from .context import RenderedContext, render_context
 
 if TYPE_CHECKING:
@@ -83,7 +83,7 @@ def _route_on_status(state: GraphState) -> str:
 # after construction, so lookups must stay dynamic rather than snapshotted).
 
 
-def _make_retrieve(answerer: "Answerer"):
+def _make_retrieve(answerer: Answerer):
     def retrieve(state: GraphState) -> dict[str, Any]:
         timings = dict(state.get("timings_ms") or {})
         with timed(timings, "retrieval"):
@@ -107,7 +107,7 @@ def _make_retrieve(answerer: "Answerer"):
     return retrieve
 
 
-def _make_relevance_gate(answerer: "Answerer"):
+def _make_relevance_gate(answerer: Answerer):
     def relevance_gate(state: GraphState) -> dict[str, Any]:
         # Checked BEFORE generation so an off-topic question costs nothing to
         # refuse. Grounding and relevance are different properties: a
@@ -133,7 +133,7 @@ def _make_relevance_gate(answerer: "Answerer"):
     return relevance_gate
 
 
-def _make_build_context(answerer: "Answerer"):
+def _make_build_context(answerer: Answerer):
     def build_context(state: GraphState) -> dict[str, Any]:
         timings = dict(state.get("timings_ms") or {})
         with timed(timings, "context"):
@@ -153,7 +153,7 @@ def _make_build_context(answerer: "Answerer"):
     return build_context
 
 
-def _make_generate(answerer: "Answerer"):
+def _make_generate(answerer: Answerer):
     def generate(state: GraphState) -> dict[str, Any]:
         rendered: RenderedContext = state["rendered"]
         system, user = answerer.prompt.render(
@@ -199,7 +199,7 @@ def _make_generate(answerer: "Answerer"):
     return generate
 
 
-def _make_parse_citations(answerer: "Answerer"):
+def _make_parse_citations(answerer: Answerer):
     def parse_citations(state: GraphState) -> dict[str, Any]:
         rendered: RenderedContext = state["rendered"]
         text = state["response_text"]
@@ -215,7 +215,7 @@ def _make_parse_citations(answerer: "Answerer"):
     return parse_citations
 
 
-def _make_verify(answerer: "Answerer"):
+def _make_verify(answerer: Answerer):
     def verify(state: GraphState) -> dict[str, Any]:
         if answerer.verifier is None:
             # No verifier configured: nothing to check, so nothing is
@@ -247,7 +247,7 @@ def _make_verify(answerer: "Answerer"):
     return verify
 
 
-def _make_finalize(answerer: "Answerer"):
+def _make_finalize(answerer: Answerer):
     def finalize(state: GraphState) -> dict[str, Any]:
         answer = answerer._finalize(
             question=state["question"],
@@ -265,7 +265,7 @@ def _make_finalize(answerer: "Answerer"):
     return finalize
 
 
-def _make_refuse(answerer: "Answerer"):
+def _make_refuse(answerer: Answerer):
     def refuse(state: GraphState) -> dict[str, Any]:
         answer = answerer._refuse(
             state["question"],
@@ -299,7 +299,7 @@ _NODES = (
 _GATED_NODES = ("retrieve", "relevance_gate", "generate", "verify")
 
 
-def build_graph(answerer: "Answerer"):
+def build_graph(answerer: Answerer):
     """Compile the state machine for one `Answerer`. Call once at
     construction -- compilation is not free, and the graph has no per-query
     state of its own to invalidate."""

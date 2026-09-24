@@ -63,7 +63,7 @@ def _split_front_matter(text: str) -> tuple[dict[str, Any], str, int]:
                 meta = {}
             if not isinstance(meta, dict):
                 meta = {}
-            rest_start = sum(len(l) + 1 for l in lines[: i + 1])
+            rest_start = sum(len(line) + 1 for line in lines[: i + 1])
             return meta, text[rest_start:], rest_start
     return {}, text, 0
 
@@ -117,7 +117,7 @@ class MarkdownParser:
             nonlocal order
             if not para_buf:
                 return
-            text = "\n".join(l.text for l in para_buf)
+            text = "\n".join(line.text for line in para_buf)
             kind = "list" if _LIST_ITEM_RE.match(para_buf[0].text.strip("\t ") or "") else "paragraph"
             # A list group is one where every non-blank line looks like an item
             # or a continuation; treat as list if the first line does.
@@ -165,7 +165,7 @@ class MarkdownParser:
                     j += 1
                 else:
                     warnings.append("Unterminated fenced code block")
-                text = "\n".join(l.text for l in code_lines)
+                text = "\n".join(line.text for line in code_lines)
                 blocks.append(
                     Block(
                         text=text,
@@ -194,7 +194,7 @@ class MarkdownParser:
                     j += 1
                 while code_lines and not code_lines[-1].text.strip():
                     code_lines.pop()
-                text = "\n".join(re.sub(r"^(    |\t)", "", l.text) for l in code_lines)
+                text = "\n".join(re.sub(r"^(    |\t)", "", line.text) for line in code_lines)
                 blocks.append(
                     Block(
                         text=text,
@@ -289,7 +289,7 @@ class MarkdownParser:
                 while j < n and lines[j].text.strip() and "|" in lines[j].text:
                     table_lines.append(lines[j])
                     j += 1
-                text = "\n".join(l.text.strip() for l in table_lines)
+                text = "\n".join(line.text.strip() for line in table_lines)
                 blocks.append(
                     Block(
                         text=normalize_block_text(text, "table"),

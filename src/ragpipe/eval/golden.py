@@ -21,7 +21,7 @@ import random
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -131,7 +131,7 @@ class ReviewRecord:
         }
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> "ReviewRecord":
+    def from_json(cls, data: dict[str, Any]) -> ReviewRecord:
         return cls(
             pair_id=data["pair_id"],
             status=data.get("status", "draft"),
@@ -189,7 +189,7 @@ def record_decision(
         pair_id=pair_id,
         status=status,
         reviewer=reviewer,
-        decided_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        decided_at=datetime.now(UTC).isoformat(timespec="seconds"),
         notes=notes,
     )
     ledger[pair_id] = rec

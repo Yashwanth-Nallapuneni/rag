@@ -5,7 +5,6 @@ import pytest
 from ragpipe.retrieval.bm25 import BM25Retriever
 from ragpipe.retrieval.tokenize import tokenize
 
-
 # --- tokenizer ------------------------------------------------------------
 
 
@@ -46,9 +45,10 @@ def test_no_stemming():
 
 @pytest.fixture(scope="module")
 def bm25(request):
+    from pathlib import Path
+
     from ragpipe.config import load_settings
     from ragpipe.ingest.pipeline import read_chunks
-    from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
     path = root / "data" / "processed" / "chunks.jsonl"
@@ -114,9 +114,10 @@ def test_stats(bm25):
 def test_stale_index_is_rebuilt_not_served(tmp_path):
     """A stale sparse index beside a fresh dense one is a very confusing
     class of bug."""
+    from pathlib import Path
+
     from ragpipe.config import load_settings
     from ragpipe.ingest.pipeline import read_chunks
-    from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
     src = root / "data" / "processed" / "chunks.jsonl"

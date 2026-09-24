@@ -8,7 +8,6 @@ from ragpipe.chunking.chunker import chunk_document, split_sentences
 from ragpipe.config import ChunkingConfig
 from ragpipe.ingest.base import Block, ParsedDocument
 from ragpipe.schemas import SourceDocument, SourceType
-from ragpipe.tokenization import count_tokens
 
 
 def _doc(blocks: list[Block]) -> ParsedDocument:
@@ -56,7 +55,7 @@ def test_adjacent_chunks_actually_overlap():
     the parameter was passed in."""
     chunks = chunk_document(_doc([_prose(80)]), CFG)
     assert len(chunks) >= 3
-    for a, b in zip(chunks, chunks[1:]):
+    for a, b in zip(chunks, chunks[1:], strict=False):
         assert _shingles(a.text) & _shingles(b.text), (
             f"chunks {a.chunk_index}/{b.chunk_index} share no text"
         )
