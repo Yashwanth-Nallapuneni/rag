@@ -57,8 +57,9 @@ def main(argv: list[str] | None = None) -> int:
     pairs, verified = load_verified(dataset), True
     if not pairs:
         if not args.allow_unverified:
-            print(f"no human-verified pairs in {dataset}; review them first "
-                  "(scripts/review_golden.py) or pass --allow-unverified", file=sys.stderr)
+            print(f"0 of {len(load_dataset(dataset))} pairs in {dataset} are human-verified. "
+                  "Run `make review` first, or pass --allow-unverified for a "
+                  "diagnostic run (results are stamped unverified).", file=sys.stderr)
             return 2
         pairs, verified = load_dataset(dataset), False
     if not pairs:
