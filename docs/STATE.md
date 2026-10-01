@@ -112,6 +112,10 @@ re-read the question.
 7. PR with the numbers, CI screenshot, fill the resume bullet's X
 ```
 
+Shortcuts (2026-10-01): `make review`, `make calibrate`, `make tune-fusion`,
+`make eval-dry`, `make corpus-restore`. The eval workflow now skips
+docs-only changes, so editing this file costs nothing in CI.
+
 Run config for every paid run (OpenRouter):
 `RAGPIPE_LLM__PROVIDER=openrouter RAGPIPE_LLM__MODEL=openai/gpt-oss-120b
 RAGPIPE_LLM__REASONING_EFFORT=low RAGPIPE_LLM__MAX_TOKENS=1400`, then
@@ -224,6 +228,8 @@ Each has a regression test. Several were only findable with a real model.
 | Strict number extraction on the evidence side / Unicode minus | "Qwen 3.6-35B" or "T^-1/2" fails as a figure "absent from the passage" -- a hard fail |
 | CI fetching the corpus by arXiv search | A cache miss builds this week's papers; the golden set is asked of the wrong corpus. Use `--from-manifest` |
 | Fusion `decide()` accepting a CI entirely below 0 | Recommends a significantly WORSE config |
+| `ruff` missing from requirements.txt | Lint step exits 127 ("command not found"); the test suite never runs in CI |
+| No LICENSE file behind the README's "MIT" | No legal effect; GitHub detects no license |
 
 ---
 
