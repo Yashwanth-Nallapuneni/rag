@@ -13,10 +13,23 @@ name: eval
 # it out keeps the free/fast tests.yml badge green independently of this
 # one, and keeps this one's badge meaning something specific: answer
 # quality, not "tests passed".
+# Docs-only changes cannot move answer quality, so they skip this paid,
+# ~40-minute run. Anything else -- code, prompts, config, the golden set,
+# this workflow -- still triggers it.
 on:
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
   workflow_dispatch:
     inputs:
       sample_size:
