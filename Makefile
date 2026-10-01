@@ -2,7 +2,7 @@ VENV := .venv
 PY   := $(VENV)/bin/python
 PIP  := $(VENV)/bin/pip
 
-.PHONY: help install corpus ingest index ask ui serve bench bench-sweep test test-all lint doctor config clean
+.PHONY: help install corpus corpus-restore ingest index ask ui serve bench bench-sweep review prescreen calibrate tune-fusion eval-dry test test-all lint doctor config clean
 
 help:
 	@grep -E '^[a-zA-Z-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "};{printf "  \033[36m%-12s\033[0m %s\n",$$1,$$2}'
@@ -14,6 +14,9 @@ install: ## create the venv and install all dependencies
 
 corpus: ## download the arXiv corpus (respects arXiv rate limits; slow by design)
 	$(PY) scripts/fetch_corpus.py --count 40
+
+corpus-restore: ## re-download exactly the manifest's pinned papers (sha256-checked)
+	$(PY) scripts/fetch_corpus.py --from-manifest
 
 ingest: ## parse and chunk the corpus into chunks.jsonl
 	PYTHONPATH=src $(PY) -m ragpipe.cli ingest
@@ -41,6 +44,21 @@ bench: ## compare retrieval configurations (known-item diagnostic)
 
 bench-sweep: ## sweep fusion weights
 	$(PY) scripts/bench_retrieval.py --sweep --per-family 40 --out eval_results/retrieval_sweep.json
+
+review: ## human-verify the golden set in the browser (the only route to 'verified')
+	PYTHONPATH=src $(VENV)/bin/streamlit run scripts/review_golden.py
+
+prescreen: ## LLM pre-screen of golden pairs -- advisory flags only, never verifies
+	$(PY) scripts/prescreen_golden.py
+
+calibrate: ## measure the relevance gate on verified pairs (retrieval + rerank, no LLM)
+	$(PY) scripts/calibrate_gate.py
+
+tune-fusion: ## fusion-weight sweep on a held-out split (no LLM calls, free)
+	$(PY) scripts/tune_fusion.py
+
+eval-dry: ## print the cost estimate for a full eval; calls nothing
+	$(PY) scripts/run_eval.py --dry-run
 
 test: ## fast tests only (what the CI gate runs)
 	$(PY) -m pytest -q -m "not slow"
