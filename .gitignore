@@ -19,4 +19,5 @@ dist/
 build/
 .ragpipe_cache/
 eval_results/*.json
+eval_results/*.txt
 !eval_results/.gitkeep
