@@ -1,0 +1,16 @@
+# Keeps the CI actions current, so a runtime deprecation (like the Node.js
+# 20 one fixed by hand) arrives as a reviewable PR instead of a CI warning.
+# Python dependencies are deliberately not auto-bumped: requirements.txt is
+# pinned for reproducible eval runs, and a silent RAGAS or langchain bump
+# has broken imports here before (see docs/STATE.md).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
