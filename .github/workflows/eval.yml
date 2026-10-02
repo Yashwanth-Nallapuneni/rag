@@ -80,7 +80,10 @@ jobs:
     # covered by the free tests workflow, and its effect on answer quality
     # is measured by the eval run on main after merge.
     if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: that label moves to Ubuntu 26 on
+    # 2026-10-19, and a silent OS change between two runs would make their
+    # eval numbers incomparable. Bump deliberately, alongside a fresh baseline.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
