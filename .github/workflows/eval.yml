@@ -75,6 +75,11 @@ env:
 
 jobs:
   eval:
+    # Dependabot PRs never receive repository secrets, so the key check
+    # below can only fail there. Skip instead: an action-version bump is
+    # covered by the free tests workflow, and its effect on answer quality
+    # is measured by the eval run on main after merge.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
