@@ -12,10 +12,11 @@ The point of this project is not the demo. It is the discipline around it:
 hybrid retrieval, cross-encoder reranking, enforced citations, and an
 evaluation harness that **gates CI on answer faithfulness**.
 
-> **Status: Phase 6 of 6 in progress.** Ingestion, hybrid retrieval,
-> reranking, enforced citations, a FastAPI service and a Streamlit demo all
-> work end to end (233 tests). The golden dataset, RAGAS harness and CI
-> quality gate are being built now.
+> **Status: built end to end; final measurement pending.** Ingestion, hybrid
+> retrieval, reranking, enforced citations, the FastAPI service, the
+> Streamlit demo, the RAGAS harness and the CI quality gate all work, with
+> 317 offline tests. 180 golden QA pairs are drafted and pre-screened; the
+> headline numbers wait on their human review (`make review`).
 >
 > Numbers marked **pending measurement** below are not yet measured. They stay
 > blank until a real evaluation run produces them — an estimated number in
