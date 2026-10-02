@@ -31,7 +31,7 @@ query shares vocabulary with the answer by construction. That is close to the
 best case imaginable for term matching and close to irrelevant for a user
 typing a natural question.
 
-I built a fourth family to escape the bias — `abstract_to_body`, where the
+I built a fourth family to escape the bias: `abstract_to_body`, where the
 query is a sentence from a paper's abstract and only *body* passages of that
 paper count as hits, with the abstract itself excluded so no verbatim match is
 possible. BM25 scored **1.000** on it. That is not evidence of quality either:
@@ -41,7 +41,7 @@ bespoke metric name) identifies the document trivially by term match.
 
 A synthesised query cannot separate these retrievers on this corpus. Doing so
 requires natural questions labelled against the specific passage that answers
-them — the human-verified golden dataset, which is Phase 6's job.
+them: the human-verified golden dataset, which is Phase 6's job.
 
 ## What the numbers do legitimately support
 
@@ -64,12 +64,12 @@ matching does not.
 |---|---|---|---|
 | dense only | 0.256 | 0.483 | **+89%** |
 | hybrid RRF | 0.449 | 0.557 | +24% |
-| sparse only (already 0.710) | — | — | nothing left to gain |
+| sparse only (already 0.710) | n/a | n/a | nothing left to gain |
 
 Consistent with what a cross-encoder does: it reads query and passage together
 in one pass instead of comparing them as independently-computed vectors, so it
 fixes ordering mistakes the first pass made. It cannot invent a passage the
-first pass never shortlisted — which is why `candidate_k` (30) is much larger
+first pass never shortlisted, which is why `candidate_k` (30) is much larger
 than `top_k` (5).
 
 **3. Fusion is never worse than its weaker input**, so hybrid is a safe
@@ -84,7 +84,7 @@ worth it at this corpus size.
   combines ranks and never compares a cosine similarity against a BM25 score,
   so it needs no cross-retriever calibration. The weighted sum's apparent win
   rides on BM25's per-query min-max normalisation, which forces the top hit to
-  1.0 regardless of absolute match quality — exactly the artifact that makes
+  1.0 regardless of absolute match quality, exactly the artifact that makes
   it look strong on lexical queries.
 - **Fusion weights stay 0.5/0.5.** Tuning them on this diagnostic would be
   fitting to its bias. Revisit against the golden dataset.

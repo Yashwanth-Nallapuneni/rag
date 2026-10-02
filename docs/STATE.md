@@ -4,7 +4,7 @@ Last updated: 2026-09-24. **317 passed** (offline, no API key). OpenRouter spend
 
 This file exists so a fresh session can resume without re-deriving anything or
 undoing a decision that was made for a measured reason. Read it before changing
-retrieval, enforcement thresholds, or the evaluation harness.
+retrieval, enforcement thresholds or the evaluation harness.
 
 ---
 
@@ -24,7 +24,7 @@ These override convenience. They were stated explicitly and repeatedly.
   <yashwanthatwork@gmail.com>`), with no AI co-author trailer. History was
   rewritten once to remove that; do not reintroduce it.
 - Build-out work is delegated to Sonnet subagents, but **their claims are
-  verified independently** — several reported things that were not true (see §8).
+  verified independently**. Several reported things that were not true (see §8).
 
 ---
 
@@ -40,7 +40,7 @@ These override convenience. They were stated explicitly and repeatedly.
 | Orchestration | LangGraph StateGraph, 8 nodes, 4 conditional refuse edges |
 | Enforcement | Per-claim coverage + numeric + negation, LLM judge on the ambiguous middle, plus a separate relevance gate |
 | API / UI | FastAPI (`/query`, `/chunk/{id}`, `/health`, `/stats`) + Streamlit demo |
-| Eval | Golden-set tooling, RAGAS harness, cost guard, CI gate — all proven end to end against a real judge |
+| Eval | Golden-set tooling, RAGAS harness, cost guard, CI gate, all proven end to end against a real judge |
 | CI | `tests.yml` (free, secretless) + `eval.yml` (quality gate, every PR) |
 
 Resolved config (do not change without re-measuring):
@@ -68,14 +68,14 @@ cross-encoder reranking over a 20-30 candidate pool, 2.3 citation enforcement
 with refusal, 2.4 versioned prompts in `prompts/`. Tech stack: LangGraph,
 ChromaDB, sentence-transformers, RAGAS, FastAPI, GitHub Actions.
 
-**Open — two items:**
+**Two items are open:**
 
 1. **Fusion weight tuning (spec 2.1) is PARTIAL.** Both mechanisms exist and a
    full sweep was run, but the weights were deliberately left at 0.5/0.5. See
-   §6 — this is blocked on the golden dataset, not forgotten.
+   §6. This is blocked on the golden dataset, not forgotten.
 2. **Spec Phase 3 deliverables need real numbers:** the golden dataset itself,
    the faithfulness figures, before/after reranking faithfulness, the CI
-   screenshot, and the resume bullet's X.
+   screenshot and the resume bullet's X.
 
 **Also required by the spec and not yet done: the repo must be PUBLIC.** It is
 currently private (unauthenticated API returns 404). The CI badges and the
@@ -124,7 +124,7 @@ RAGPIPE_LLM__REASONING_EFFORT=low RAGPIPE_LLM__MAX_TOKENS=1400`, then
 
 ---
 
-## 6. Calibration traps — read before touching a threshold
+## 6. Calibration traps: read before touching a threshold
 
 **The relevance gate (`-7.0`) is NOT what refused the answerable question.**
 An earlier version of this file said it was. That was wrong: the refuse node
@@ -133,11 +133,11 @@ showed zero tokens and looked like one *before* it. Fixed, with a regression
 test. `scripts/calibrate_gate.py` (retrieval + rerank only, no LLM, no cost)
 then showed every answerable smoke question scoring >= 0.61, far above -7.0.
 So the live false refusal came from **citation enforcement on a paraphrasing
-model** -- see the enforcement paragraph below.
+model**. See the enforcement paragraph below.
 
 On all 180 UNVERIFIED drafts: 0/153 answerable below -7.0 (lowest -4.39); all
 13 off-domain probes at -10 to -11, caught; the 14 in-domain "uncovered
-detail" probes pass the gate, as they should -- they name a real paper, so
+detail" probes pass the gate, as they should: they name a real paper, so
 the passages ARE on topic; refusing those is enforcement's job. Loosening to
 -5 changes nothing; tightening to 0 refuses 13 answerable. Gate unchanged.
 
@@ -146,14 +146,14 @@ questions share vocabulary with their chunk, so their scores are optimistic.
 Do not simply loosen the gate either way: it is what stops a faithfully-quoted
 but irrelevant passage from becoming a confident answer (asked "what is the
 capital of Mongolia?", an early build retrieved a Toronto weather-station
-passage, quoted it accurately, and scored 100% supported).
+passage, quoted it accurately and scored 100% supported).
 
 **Do NOT tune fusion weights on the known-item benchmark.** `make bench`
 reports BM25 crushing dense retrieval and improves monotonically toward
 `sparse_weight=0.9`. That is an artifact: its queries are synthesised from
 their target chunks, so they share vocabulary by construction. A fourth family
 built specifically to escape the bias (abstract → body) did not escape it
-either — BM25 scored a perfect 1.000, because accepting any of a paper's 10-25
+either. BM25 scored a perfect 1.000, because accepting any of a paper's 10-25
 body chunks makes the task document identification, which each paper's
 distinctive jargon settles trivially. Full reasoning in
 `docs/retrieval_findings.md`. Tune against the golden set instead.
@@ -162,7 +162,7 @@ distinctive jargon settles trivially. Full reasoning in
 unanswerable questions wrongly answered throughout. Every fix was in parsing,
 none in thresholds: `【S1†L1-L4】` markers, "U.S." as a sentence end,
 zero-width and narrow spaces inside markers, curly quotes, numbers glued to
-identifiers, and a Unicode minus in the passages. Of the remaining 7: 3 are
+identifiers and a Unicode minus in the passages. Of the remaining 7: 3 are
 the model itself declining (INSUFFICIENT_CONTEXT), and 4 contain a genuinely
 uncited sentence, which the traceability rule is right to reject. Both are
 policy questions to settle on VERIFIED data, not by loosening on drafts.
@@ -205,7 +205,7 @@ over lowering `min_supported_ratio`.
 
 ---
 
-## 8. Bugs already fixed — do not reintroduce
+## 8. Bugs already fixed: do not reintroduce
 
 Each has a regression test. Several were only findable with a real model.
 
@@ -225,7 +225,7 @@ Each has a regression test. Several were only findable with a real model.
 | Unanswerable probes drawn with replacement | 27 probes = 11 unique questions; refusal accuracy measured on repeats |
 | `【S1†L1-L4】`, `[ S1 ]`, zero-width chars in markers | Citations invisible -> 0% support -> refusal despite perfect retrieval |
 | "U.S." read as a sentence end | Content half loses its markers; one grounded claim scored 50% |
-| Strict number extraction on the evidence side / Unicode minus | "Qwen 3.6-35B" or "T^-1/2" fails as a figure "absent from the passage" -- a hard fail |
+| Strict number extraction on the evidence side / Unicode minus | "Qwen 3.6-35B" or "T^-1/2" fails as a figure "absent from the passage", which is a hard fail |
 | CI fetching the corpus by arXiv search | A cache miss builds this week's papers; the golden set is asked of the wrong corpus. Use `--from-manifest` |
 | Fusion `decide()` accepting a CI entirely below 0 | Recommends a significantly WORSE config |
 | `ruff` missing from requirements.txt | Lint step exits 127 ("command not found"); the test suite never runs in CI |
@@ -262,8 +262,8 @@ python scripts/ci_gate.py <results.json> --baseline <previous.json>
 **Measured, quotable:**
 - 40 documents, 1054 chunks; 100% carry a page number, 98.8% a section
 - 97.9% of adjacent chunk pairs share overlap text (mean 85 words)
-- Known-item Recall@1 — BM25 0.300 vs dense 0.060 on exact identifiers
-- Known-item Recall@1 — reranking lifts dense 0.256 → 0.483 (+89%)
+- Known-item Recall@1: BM25 0.300 vs dense 0.060 on exact identifiers
+- Known-item Recall@1: reranking lifts dense 0.256 → 0.483 (+89%)
 - Section-label noise 0.0% (was 3.6%)
 - 317 passed offline
 
@@ -271,7 +271,7 @@ Call the retrieval figures **"known-item Recall@1"**, never "precision". The
 diagnostic is lexically biased and the honest framing is a strength: it shows
 the limits of one's own benchmark.
 
-**NOT measured — must stay blank:**
+**NOT measured, must stay blank:**
 - Faithfulness, answer relevance, context precision/recall on the golden set
 - Before/after reranking faithfulness
 - Refusal accuracy (pilot figures 0.675 -> 0.75 -> 0.825 are 40 UNVERIFIED pairs: engineering diagnostics, not results)

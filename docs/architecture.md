@@ -92,5 +92,5 @@ relevance is decided by the cross-encoder before generation is even attempted.
 
 **Every backend sits behind a protocol.** LLM, embeddings and reranker are
 swappable, and deterministic offline implementations satisfy the same
-contracts — which is why the full pipeline, citation enforcement included, runs
+contracts, which is why the full pipeline, citation enforcement included, runs
 in CI with no API key and no run-to-run variance.
