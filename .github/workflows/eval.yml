@@ -85,7 +85,7 @@ jobs:
     # eval numbers incomparable. Bump deliberately, alongside a fresh baseline.
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # --- loud failure on a missing secret -----------------------------
       # This MUST run before anything else spends CI minutes, and it must
@@ -104,7 +104,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -159,7 +159,7 @@ jobs:
 
       # --- model weights (BGE embedder + cross-encoder reranker) --------
       - name: Cache HuggingFace model weights
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/huggingface
@@ -169,7 +169,7 @@ jobs:
       # --- corpus (data/raw is gitignored; only the manifest is versioned) --
       - name: Cache corpus (data/raw)
         id: cache-corpus
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: data/raw
           key: ${{ steps.keys.outputs.corpus_key }}
@@ -187,7 +187,7 @@ jobs:
       # --- chunk + index (rebuild is cheap-ish; only pay it on a real miss) -
       - name: Cache chunked corpus + vector index
         id: cache-index
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             data/chroma
@@ -216,7 +216,7 @@ jobs:
       # quota is exceeded, so a long-quiet repo may start a PR with no
       # baseline -- handled gracefully by ci_gate.py (skip, don't fail).
       - name: Restore baseline eval result (from latest main push, if any)
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.BASELINE_JSON }}
           key: eval-baseline-nomatch-${{ github.run_id }}
@@ -283,7 +283,7 @@ jobs:
 
       - name: Upload eval results as build evidence
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: eval-results-${{ github.run_id }}
           path: |
@@ -309,7 +309,7 @@ jobs:
 
       - name: Save this run as the new baseline (main only, gate passed)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.gate.outputs.exit_code == '0'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ env.BASELINE_JSON }}
           key: eval-baseline-${{ github.sha }}
@@ -317,7 +317,7 @@ jobs:
       - name: Post metric table as a PR comment
         if: github.event_name == 'pull_request' && always()
         continue-on-error: true # fork PRs get a read-only token; comment is best-effort, never the pass/fail signal
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
