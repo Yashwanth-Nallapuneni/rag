@@ -145,13 +145,13 @@ def _render_answer_text(answer: Answer) -> None:
 
 def _render_refusal(answer: Answer) -> None:
     """A refusal is the headline, not an error banner."""
-    st.warning(f"**Refused to answer** — status: `{answer.status.value}`")
+    st.warning(f"**Refused to answer** (status: `{answer.status.value}`)")
     st.markdown(f"**Why:** {answer.refusal_reason}")
     st.markdown(f"*Message shown to the user:* {answer.text}")
     if answer.contexts:
         st.markdown("**Passages retrieved anyway** (this is why it refused, not despite it):")
         for rc in answer.contexts:
-            with st.expander(f"{rc.chunk.doc_title} — {rc.chunk.locator()}"):
+            with st.expander(f"{rc.chunk.doc_title}: {rc.chunk.locator()}"):
                 st.write(rc.chunk.text)
                 st.json(_score_row(rc))
     else:
@@ -229,7 +229,7 @@ def _render_retrieval_detail(answer: Answer) -> None:
         for rc in answer.contexts:
             cited = rc.chunk_id in cited_ids
             tag = "cited" if cited else "retrieved, not cited"
-            st.markdown(f"**{rc.chunk.doc_title}** — {rc.chunk.locator()}  `[{tag}]`")
+            st.markdown(f"**{rc.chunk.doc_title}**: {rc.chunk.locator()}  `[{tag}]`")
             st.json(_score_row(rc))
             st.divider()
 
@@ -270,7 +270,7 @@ def _render_sidebar_health(settings: Settings, answerer: Answerer | None) -> Non
 # Main
 # --------------------------------------------------------------------------
 def main() -> None:
-    st.title("ragpipe — retrieval-augmented QA demo")
+    st.title("ragpipe: retrieval-augmented QA demo")
     st.caption(
         "Offline mock LLM: answers are EXTRACTIVE (sentences copied from "
         "retrieved passages), not fluent generated prose. This demo showcases "
@@ -293,7 +293,7 @@ def main() -> None:
         store = get_store(probe_settings)
         if store.count() == 0:
             st.error(
-                "The vector store is empty — no index has been built yet.\n\n"
+                "The vector store is empty, so no index has been built yet.\n\n"
                 "Run `make ingest && make index` from the project root, then reload."
             )
             _render_sidebar_health(probe_settings, None)
