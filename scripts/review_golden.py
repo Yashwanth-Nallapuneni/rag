@@ -16,6 +16,7 @@ Run with:
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -60,6 +61,24 @@ def _chunk_map() -> dict:
     return _load_chunk_map(str(chunks_path), chunks_path.stat().st_mtime)
 
 
+def _load_suggestions(dataset_path: Path) -> dict:
+    """Optional reviewer-aid sidecar (eval/review_suggestions.jsonl): one
+    advisory verdict per pair from a second-pass model review. Advisory only;
+    it never changes verification status. Returns {} if the file is absent."""
+    path = dataset_path.parent / "review_suggestions.jsonl"
+    if not path.exists():
+        return {}
+    out = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            out[rec["id"]] = rec
+    return out
+
+
+_SUGGESTION_ORDER = {"reject": 0, "fix": 1, "approve": 2}
+
+
 def _inject_shortcuts() -> None:
     """Best-effort keyboard shortcuts (a=approve, r=reject, s=skip) by
     clicking the matching button in the parent document. Streamlit has no
@@ -100,12 +119,16 @@ def main() -> None:
         only_suspect = st.checkbox(
             "Show only pre-screen suspect pairs", value=False, key="only_suspect"
         )
+        by_suggestion = st.checkbox(
+            "Order by suggestion (reject, fix, approve)", value=True, key="by_suggestion"
+        )
         page = st.radio("View", ["Review", "Summary"], index=0)
 
     dataset_path = Path(st.session_state["dataset_path"])
     review_path = default_review_path(dataset_path)
     prescreen_path = default_prescreen_path(dataset_path)
     prescreen = load_prescreen(prescreen_path)  # {} if the sidecar is missing
+    suggestions = _load_suggestions(dataset_path)
 
     if not dataset_path.exists():
         st.warning(f"No dataset at {dataset_path} yet. Run scripts/draft_golden.py first.")
@@ -158,7 +181,15 @@ def main() -> None:
         if (not only_draft or review_status(qa.id, ledger) == "draft")
         and (not only_suspect or _is_suspect(qa.id))
     ]
-    if suspect_first:
+    if by_suggestion and suggestions:
+        queue.sort(
+            key=lambda qa: (
+                _SUGGESTION_ORDER.get(suggestions.get(qa.id, {}).get("suggested_verdict"), 3),
+                0 if _is_suspect(qa.id) else 1,
+                qa.id,
+            )
+        )
+    elif suspect_first:
         queue.sort(key=lambda qa: (0 if _is_suspect(qa.id) else 1, qa.id))
     else:
         queue.sort(key=lambda qa: qa.id)
@@ -204,15 +235,42 @@ def main() -> None:
                 "UNANSWERABLE candidate -- there is no source chunk. Confirm the "
                 "corpus genuinely cannot answer this before approving."
             )
-        st.markdown("**Question**")
-        st.info(current.question)
+        sug = suggestions.get(current.id)
+        if sug:
+            verdict = sug.get("suggested_verdict", "?")
+            box = {"reject": st.error, "fix": st.warning}.get(verdict, st.success)
+            box(
+                f"**Suggestion (advisory, you decide): {verdict.upper()}**\n\n"
+                + sug.get("reason", "")
+            )
+            if sug.get("fixed_question") or sug.get("fixed_ground_truth"):
+                if sug.get("fixed_question"):
+                    st.caption("Suggested question: " + sug["fixed_question"])
+                if sug.get("fixed_ground_truth"):
+                    st.caption("Suggested ground truth: " + sug["fixed_ground_truth"])
+
+                def _fill(s=sug, pid=current.id) -> None:
+                    if s.get("fixed_question"):
+                        st.session_state[f"q_{pid}"] = s["fixed_question"]
+                    if s.get("fixed_ground_truth"):
+                        st.session_state[f"gt_{pid}"] = s["fixed_ground_truth"]
+
+                st.button("Fill suggested text into the boxes below", on_click=_fill)
+        question = st.text_area(
+            "Question (editable)", value=current.question, height=100, key=f"q_{current.id}"
+        )
         gt = st.text_area("Ground truth (editable)", value=current.ground_truth, height=150, key=f"gt_{current.id}")
         notes = st.text_area(
             "Reviewer notes", value=current.notes, height=80, key=f"notes_{current.id}"
         )
 
         def _persist_edit(new_notes: str) -> None:
-            if gt != current.ground_truth or new_notes != current.notes:
+            if (
+                question != current.question
+                or gt != current.ground_truth
+                or new_notes != current.notes
+            ):
+                current.question = question
                 current.ground_truth = gt
                 current.notes = new_notes
                 save_dataset(pairs, dataset_path)
