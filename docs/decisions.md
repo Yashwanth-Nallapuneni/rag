@@ -229,3 +229,12 @@ the rule stays. The model was breaking a rule v2 already states, so the fix
 belongs in the instruction, not in the verifier. Prompts are versioned and
 the version goes into the config fingerprint, so the change is traceable in
 every eval result.
+
+**D13 caveat (recorded after the live check):** the v3 check used the 10
+golden pairs that showed the problem, and the final eval scores the same
+171 pairs. v3 is a generic instruction with a generic example, and nothing in
+it comes from the golden questions, so the risk of fitting to the test set is
+small, but it is not zero. Result of the check: v2 answered 3 of the 10, v3
+answered 9. The 5 previously answered pairs still answered. That check
+overspent its own $0.10 sub-cap by about $0.07 because of a script crash.
+Total spend stays well under $5.
