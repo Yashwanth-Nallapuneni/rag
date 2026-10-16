@@ -89,7 +89,7 @@ def test_answer_is_auditable(answerer, grounded_question):
     """Provenance on the answer itself is what makes a metric shift
     explainable later."""
     a = answerer.answer(grounded_question)
-    assert a.prompt_version == "answer/v2"
+    assert a.prompt_version == "answer/v3"
     assert a.model and a.model.startswith("mock:")
     assert a.config_fingerprint
     assert {"retrieval", "context", "generation"} <= set(a.timings_ms)

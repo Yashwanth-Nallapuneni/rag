@@ -193,7 +193,7 @@ class LLMConfig(BaseModel):
 
 class PromptsConfig(BaseModel):
     dir: str = "prompts"
-    answer_version: str = "v2"
+    answer_version: str = "v3"
     claim_check_version: str = "v1"
 
     @property

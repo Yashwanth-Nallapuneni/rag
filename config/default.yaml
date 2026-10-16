@@ -93,7 +93,7 @@ llm:
 
 prompts:
   dir: prompts
-  answer_version: v2
+  answer_version: v3
   claim_check_version: v1
 
 generation:

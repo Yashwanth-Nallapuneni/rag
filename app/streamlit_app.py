@@ -61,7 +61,7 @@ def _sidebar_overrides() -> dict:
     fusion = st.sidebar.selectbox("Fusion method", ["rrf", "weighted_sum"], index=0)
     rerank_on = st.sidebar.checkbox("Reranking enabled", value=True)
     enforce_citations = st.sidebar.checkbox("Citation enforcement", value=True)
-    prompt_version = st.sidebar.selectbox("Answer prompt version", ["v2", "v1"], index=0)
+    prompt_version = st.sidebar.selectbox("Answer prompt version", ["v3", "v2", "v1"], index=0)
 
     return {
         "retrieval": {"mode": mode, "top_k": top_k, "fusion": fusion},

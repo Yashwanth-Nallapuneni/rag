@@ -12,7 +12,7 @@ def prompts_dir(settings):
 
 def test_versions_are_discoverable(prompts_dir):
     available = list_prompts(prompts_dir)
-    assert "v1" in available["answer"] and "v2" in available["answer"]
+    assert all(v in available["answer"] for v in ("v1", "v2", "v3"))
 
 
 def test_active_version_loads(settings, prompts_dir):
