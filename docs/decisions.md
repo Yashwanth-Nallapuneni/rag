@@ -238,3 +238,15 @@ small, but it is not zero. Result of the check: v2 answered 3 of the 10, v3
 answered 9. The 5 previously answered pairs still answered. That check
 overspent its own $0.10 sub-cap by about $0.07 because of a script crash.
 Total spend stays well under $5.
+
+### D14. Install `parskip` and `cm-super` into the owner's TinyTeX
+
+**Decision:** Run `tlmgr install parskip cm-super` (CTAN, TeX's official
+package archive) so the resume compiles locally.
+
+**Why:** The resume `.tex` was compiled elsewhere (Overleaf, TeX Live 2026).
+The local TinyTeX lacks `parskip` and the cm-super Type 1 fonts, so a local
+build runs to 2 pages in bitmap fonts and cannot be checked against
+`cv/resume.pdf`. The change is limited to the owner's user-level TeX tree, can
+be undone with `tlmgr remove`, and is needed to produce
+`resume-updated.pdf` in the same typography.
