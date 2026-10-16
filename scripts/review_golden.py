@@ -84,7 +84,7 @@ def _inject_shortcuts() -> None:
     clicking the matching button in the parent document. Streamlit has no
     native keybinding API; this degrades gracefully to mouse-only if it
     doesn't attach."""
-    st.components.v1.html(
+    st.iframe(
         """
         <script>
         const doc = window.parent.document;
@@ -289,22 +289,22 @@ def main() -> None:
                 save_dataset(pairs, dataset_path)
 
         b1, b2, b3, b4 = st.columns(4)
-        if b1.button("Approve", use_container_width=True):
+        if b1.button("Approve", width="stretch"):
             _persist_edit(notes)
             record_decision(review_path, current.id, "verified", reviewer=st.session_state["reviewer"], notes=notes)
             _advance()
             st.rerun()
-        if b2.button("Save edits & approve", use_container_width=True):
+        if b2.button("Save edits & approve", width="stretch"):
             _persist_edit(notes or "edited during review")
             record_decision(review_path, current.id, "verified", reviewer=st.session_state["reviewer"], notes=notes)
             _advance()
             st.rerun()
-        if b3.button("Reject", use_container_width=True):
+        if b3.button("Reject", width="stretch"):
             _persist_edit(notes)
             record_decision(review_path, current.id, "rejected", reviewer=st.session_state["reviewer"], notes=notes)
             _advance()
             st.rerun()
-        if b4.button("Skip", use_container_width=True):
+        if b4.button("Skip", width="stretch"):
             _advance()
             st.rerun()
 

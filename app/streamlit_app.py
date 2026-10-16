@@ -216,7 +216,7 @@ def _render_verification(answer: Answer, settings: Settings) -> None:
         }
         for v in answer.claim_verdicts
     ]
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    st.dataframe(rows, width="stretch", hide_index=True)
 
 
 def _render_retrieval_detail(answer: Answer) -> None:
