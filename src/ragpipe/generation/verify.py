@@ -44,7 +44,9 @@ log = get_logger(__name__)
 
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9\-_]*")
 # Integers, decimals, percentages and scientific notation.
-_NUM_RE = re.compile(r"(?<![\w.])[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?%?(?![\w])")
+# A bare leading-dot decimal (".034", "-.5") is a number too: statistics papers
+# drop the zero ("p = .034") and models restore it ("0.034").
+_NUM_RE = re.compile(r"(?<![\w.])[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?%?(?![\w])")
 _NEGATION = {
     "not", "no", "never", "none", "neither", "nor", "without", "cannot",
     "cant", "doesnt", "dont", "isnt", "arent", "wasnt", "werent", "fails",
@@ -107,7 +109,11 @@ def _numbers(text: str) -> set[str]:
     return out
 
 
-_ANY_NUM_RE = re.compile(r"-?\d+(?:\.\d+)?")
+# The integer alternative is tried first, so "1.034" is consumed whole and never
+# yields a spurious ".034". The dot form only fires when no word character
+# precedes the dot: in "Appendix A.3" or "127.0.0.1" the dot is a separator and
+# the digits must still be read as integers.
+_ANY_NUM_RE = re.compile(r"-?(?:\d+(?:\.\d+)?|(?<![\w.])\.\d+)")
 
 
 def _evidence_numbers(text: str) -> set[str]:

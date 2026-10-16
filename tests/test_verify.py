@@ -281,3 +281,29 @@ def test_unicode_minus_in_evidence_matches_ascii_claim():
 
     assert judge_lexically("attains the rate T^-1/2", "attains the rate T−1/2").numbers_ok
     assert not judge_lexically("drops by -3.5 points", "drops by 2.5 points").numbers_ok
+
+
+def test_leading_zero_decimal_equivalence_both_directions():
+    """Real eval failures: passage 'p = .034' / 'q = .05', answer '0.034' / '0.05'."""
+    passage = "Frequency correlates with sentiment (ρ = +0.55, p = .034) and q = .05."
+    j = judge_lexically("The correlation has a p-value of 0.034 and q of 0.05", passage)
+    assert j.numbers_ok, j.missing_numbers
+    assert judge_lexically("p = .034", "the p-value was 0.034").numbers_ok
+    assert judge_lexically("a shift of −.5", "a shift of -0.5").numbers_ok
+    assert judge_lexically("a shift of -0.5", "a shift of −.5").numbers_ok
+    assert judge_lexically("a value of 0.50", "a value of .5").numbers_ok
+
+
+def test_leading_zero_normalisation_makes_no_false_matches():
+    assert not judge_lexically("a p-value of 0.035", "p = .034").numbers_ok
+    assert not judge_lexically("a p-value of 0.034", "the value was 1.034").numbers_ok
+    assert not judge_lexically("a p-value of 0.034", "the value was 10.034").numbers_ok
+    assert not judge_lexically("a gain of 2.5", "a gain of 3.1").numbers_ok
+    assert not judge_lexically("a gain of 3.1", "a gain of 31").numbers_ok
+    assert not judge_lexically("a gain of 2.5", "a gain of 25").numbers_ok
+    assert not judge_lexically("a gain of 2.5", "a gain of .25").numbers_ok
+
+
+def test_dotted_identifiers_still_yield_integers_in_evidence():
+    """'Appendices A.1, A.2 and A.3' must still supply the integer 3."""
+    assert judge_lexically("see the 3 appendices", "provided in Appendices A.1, A.2 and A.3").numbers_ok
