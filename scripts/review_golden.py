@@ -122,6 +122,7 @@ def main() -> None:
         by_suggestion = st.checkbox(
             "Order by suggestion (reject, fix, approve)", value=True, key="by_suggestion"
         )
+        st.text_input("Go to pair id (re-review one pair)", value="", key="jump_id")
         page = st.radio("View", ["Review", "Summary"], index=0)
 
     dataset_path = Path(st.session_state["dataset_path"])
@@ -193,6 +194,18 @@ def main() -> None:
         queue.sort(key=lambda qa: (0 if _is_suspect(qa.id) else 1, qa.id))
     else:
         queue.sort(key=lambda qa: qa.id)
+
+    jump_id = st.session_state.get("jump_id", "").strip()
+    if jump_id:
+        if jump_id in by_id:
+            queue = [by_id[jump_id]]
+            st.info(
+                f"Showing only {jump_id} (status: {review_status(jump_id, ledger)}). "
+                "Clear 'Go to pair id' to return to the queue."
+            )
+        else:
+            st.error(f"No pair with id {jump_id}.")
+            return
 
     if prescreen:
         n_suspect = sum(1 for qa in pairs if _is_suspect(qa.id))
