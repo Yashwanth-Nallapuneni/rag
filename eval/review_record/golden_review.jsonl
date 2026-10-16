@@ -1,0 +1,180 @@
+{"pair_id": "qa-05aa00352d3d8258-00000-multi_hop", "status": "verified", "reviewer": "", "decided_at": "2026-10-16T16:51:01+00:00", "notes": ""}
+{"pair_id": "qa-05aa00352d3d8258-00004-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:24+00:00", "notes": ""}
+{"pair_id": "qa-05aa00352d3d8258-00008-factual", "status": "verified", "reviewer": "", "decided_at": "2026-10-16T16:51:19+00:00", "notes": "edited during review"}
+{"pair_id": "qa-05aa00352d3d8258-00009-comparison", "status": "verified", "reviewer": "", "decided_at": "2026-10-16T16:51:42+00:00", "notes": "edited during review"}
+{"pair_id": "qa-065ffa842a655e37-00000-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:24+00:00", "notes": ""}
+{"pair_id": "qa-065ffa842a655e37-00004-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:31+00:00", "notes": ""}
+{"pair_id": "qa-065ffa842a655e37-00005-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:25+00:00", "notes": ""}
+{"pair_id": "qa-065ffa842a655e37-00006-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:01+00:00", "notes": ""}
+{"pair_id": "qa-08c84f25326f5143-00001-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:35+00:00", "notes": ""}
+{"pair_id": "qa-08c84f25326f5143-00010-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:25+00:00", "notes": ""}
+{"pair_id": "qa-08c84f25326f5143-00018-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:26+00:00", "notes": ""}
+{"pair_id": "qa-08c84f25326f5143-00024-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:27+00:00", "notes": ""}
+{"pair_id": "qa-16f3620e21880ee0-00000-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:28+00:00", "notes": ""}
+{"pair_id": "qa-16f3620e21880ee0-00001-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:38+00:00", "notes": ""}
+{"pair_id": "qa-16f3620e21880ee0-00003-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:28+00:00", "notes": ""}
+{"pair_id": "qa-16f3620e21880ee0-00017-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:04+00:00", "notes": ""}
+{"pair_id": "qa-18b1407b9c238edf-00006-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:29+00:00", "notes": ""}
+{"pair_id": "qa-18b1407b9c238edf-00007-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:29+00:00", "notes": ""}
+{"pair_id": "qa-18b1407b9c238edf-00008-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:29+00:00", "notes": ""}
+{"pair_id": "qa-18b1407b9c238edf-00009-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:41+00:00", "notes": ""}
+{"pair_id": "qa-20c7397a39c7d029-00002-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:30+00:00", "notes": ""}
+{"pair_id": "qa-20c7397a39c7d029-00006-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:44+00:00", "notes": ""}
+{"pair_id": "qa-20c7397a39c7d029-00009-numeric", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:37:41+00:00", "notes": ""}
+{"pair_id": "qa-20c7397a39c7d029-00012-multi_hop", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:24+00:00", "notes": ""}
+{"pair_id": "qa-25147abfdad7da75-00005-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:30+00:00", "notes": ""}
+{"pair_id": "qa-25147abfdad7da75-00006-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:31+00:00", "notes": ""}
+{"pair_id": "qa-25147abfdad7da75-00010-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:31+00:00", "notes": ""}
+{"pair_id": "qa-25147abfdad7da75-00011-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:47+00:00", "notes": ""}
+{"pair_id": "qa-2803ed2f586f5cb9-00000-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:50+00:00", "notes": ""}
+{"pair_id": "qa-2803ed2f586f5cb9-00001-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:41:53+00:00", "notes": ""}
+{"pair_id": "qa-2803ed2f586f5cb9-00005-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:08+00:00", "notes": ""}
+{"pair_id": "qa-2803ed2f586f5cb9-00017-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:43+00:00", "notes": ""}
+{"pair_id": "qa-2b88d5a23b858daf-00007-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:12+00:00", "notes": ""}
+{"pair_id": "qa-2b88d5a23b858daf-00025-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:14+00:00", "notes": ""}
+{"pair_id": "qa-30f3358fb5e10270-00002-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:18+00:00", "notes": ""}
+{"pair_id": "qa-30f3358fb5e10270-00003-definition", "status": "rejected", "reviewer": "", "decided_at": "2026-10-16T16:50:42+00:00", "notes": ""}
+{"pair_id": "qa-30f3358fb5e10270-00005-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:31+00:00", "notes": ""}
+{"pair_id": "qa-30f3358fb5e10270-00008-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:17+00:00", "notes": ""}
+{"pair_id": "qa-3b3fbd6bf534abc2-00000-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:32+00:00", "notes": ""}
+{"pair_id": "qa-3b3fbd6bf534abc2-00003-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:21+00:00", "notes": ""}
+{"pair_id": "qa-3b3fbd6bf534abc2-00006-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:46+00:00", "notes": ""}
+{"pair_id": "qa-3b3fbd6bf534abc2-00008-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:32+00:00", "notes": ""}
+{"pair_id": "qa-41e2a90782edf723-00003-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:49+00:00", "notes": ""}
+{"pair_id": "qa-41e2a90782edf723-00008-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:32+00:00", "notes": ""}
+{"pair_id": "qa-41e2a90782edf723-00009-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:33+00:00", "notes": ""}
+{"pair_id": "qa-41e2a90782edf723-00010-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:52+00:00", "notes": ""}
+{"pair_id": "qa-45b8a84b970cd1b4-00003-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:54+00:00", "notes": ""}
+{"pair_id": "qa-45b8a84b970cd1b4-00005-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:33+00:00", "notes": ""}
+{"pair_id": "qa-45b8a84b970cd1b4-00006-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:34+00:00", "notes": ""}
+{"pair_id": "qa-45b8a84b970cd1b4-00007-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:34+00:00", "notes": ""}
+{"pair_id": "qa-591684f862ff7c59-00002-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:34+00:00", "notes": ""}
+{"pair_id": "qa-591684f862ff7c59-00004-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:34+00:00", "notes": ""}
+{"pair_id": "qa-591684f862ff7c59-00006-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:34+00:00", "notes": ""}
+{"pair_id": "qa-591684f862ff7c59-00007-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:23+00:00", "notes": ""}
+{"pair_id": "qa-620c94c4438e5e62-00000-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:57+00:00", "notes": ""}
+{"pair_id": "qa-620c94c4438e5e62-00001-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:42:59+00:00", "notes": ""}
+{"pair_id": "qa-620c94c4438e5e62-00005-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:35+00:00", "notes": ""}
+{"pair_id": "qa-620c94c4438e5e62-00007-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:35+00:00", "notes": ""}
+{"pair_id": "qa-648832a767918090-00004-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:02+00:00", "notes": ""}
+{"pair_id": "qa-648832a767918090-00005-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:04+00:00", "notes": ""}
+{"pair_id": "qa-648832a767918090-00006-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:35+00:00", "notes": ""}
+{"pair_id": "qa-648832a767918090-00008-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:09+00:00", "notes": ""}
+{"pair_id": "qa-67ab5e869fe15b54-00001-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:28+00:00", "notes": ""}
+{"pair_id": "qa-67ab5e869fe15b54-00002-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:35+00:00", "notes": ""}
+{"pair_id": "qa-67ab5e869fe15b54-00009-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:12+00:00", "notes": ""}
+{"pair_id": "qa-6a630c46bfcbfcbb-00003-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:35+00:00", "notes": ""}
+{"pair_id": "qa-6a630c46bfcbfcbb-00005-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:35+00:00", "notes": ""}
+{"pair_id": "qa-6a630c46bfcbfcbb-00011-comparison", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:27+00:00", "notes": "heuristic-drafted: lower quality, verify carefully"}
+{"pair_id": "qa-6a630c46bfcbfcbb-00012-definition", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:29+00:00", "notes": ""}
+{"pair_id": "qa-6dbe02b2bc472b35-00000-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:36+00:00", "notes": ""}
+{"pair_id": "qa-6dbe02b2bc472b35-00010-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:36+00:00", "notes": ""}
+{"pair_id": "qa-6dbe02b2bc472b35-00019-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:15+00:00", "notes": ""}
+{"pair_id": "qa-7711e2ab2f019d39-00003-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:36+00:00", "notes": ""}
+{"pair_id": "qa-7711e2ab2f019d39-00005-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:31+00:00", "notes": ""}
+{"pair_id": "qa-7711e2ab2f019d39-00007-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:36+00:00", "notes": ""}
+{"pair_id": "qa-7a10e4cedd77494a-00004-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:37+00:00", "notes": ""}
+{"pair_id": "qa-7a10e4cedd77494a-00005-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:28+00:00", "notes": ""}
+{"pair_id": "qa-7a10e4cedd77494a-00007-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:34+00:00", "notes": ""}
+{"pair_id": "qa-7a10e4cedd77494a-00008-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:37+00:00", "notes": ""}
+{"pair_id": "qa-7e6dfa7f1be9cdee-00005-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:37+00:00", "notes": ""}
+{"pair_id": "qa-7e6dfa7f1be9cdee-00006-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:37+00:00", "notes": ""}
+{"pair_id": "qa-7e6dfa7f1be9cdee-00009-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:37+00:00", "notes": ""}
+{"pair_id": "qa-7e6dfa7f1be9cdee-00012-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:37+00:00", "notes": ""}
+{"pair_id": "qa-86a9cb25912fd0ff-00004-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:37+00:00", "notes": ""}
+{"pair_id": "qa-86a9cb25912fd0ff-00005-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:38+00:00", "notes": ""}
+{"pair_id": "qa-86a9cb25912fd0ff-00009-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:38+00:00", "notes": ""}
+{"pair_id": "qa-86a9cb25912fd0ff-00011-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:38+00:00", "notes": ""}
+{"pair_id": "qa-894ef52e8f805feb-00007-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:41+00:00", "notes": ""}
+{"pair_id": "qa-894ef52e8f805feb-00010-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:39+00:00", "notes": ""}
+{"pair_id": "qa-894ef52e8f805feb-00011-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:39+00:00", "notes": ""}
+{"pair_id": "qa-894ef52e8f805feb-00012-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:39+00:00", "notes": ""}
+{"pair_id": "qa-92ed50cb87f605b4-00002-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:40+00:00", "notes": ""}
+{"pair_id": "qa-92ed50cb87f605b4-00004-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:40+00:00", "notes": ""}
+{"pair_id": "qa-92ed50cb87f605b4-00005-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:40+00:00", "notes": ""}
+{"pair_id": "qa-92ed50cb87f605b4-00006-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:40+00:00", "notes": ""}
+{"pair_id": "qa-9a2a29cd0f8a3b1a-00004-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:40+00:00", "notes": ""}
+{"pair_id": "qa-9a2a29cd0f8a3b1a-00005-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:41+00:00", "notes": ""}
+{"pair_id": "qa-9a2a29cd0f8a3b1a-00007-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:41+00:00", "notes": ""}
+{"pair_id": "qa-9a2a29cd0f8a3b1a-00009-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:44+00:00", "notes": ""}
+{"pair_id": "qa-9fd5ec934fb5a31d-00006-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:41+00:00", "notes": ""}
+{"pair_id": "qa-9fd5ec934fb5a31d-00009-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:41+00:00", "notes": ""}
+{"pair_id": "qa-9fd5ec934fb5a31d-00010-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:41+00:00", "notes": ""}
+{"pair_id": "qa-9fd5ec934fb5a31d-00016-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:42+00:00", "notes": ""}
+{"pair_id": "qa-9fd7e8cc5a3af6e6-00000-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:42+00:00", "notes": ""}
+{"pair_id": "qa-9fd7e8cc5a3af6e6-00003-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:42+00:00", "notes": ""}
+{"pair_id": "qa-9fd7e8cc5a3af6e6-00006-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:42+00:00", "notes": ""}
+{"pair_id": "qa-9fd7e8cc5a3af6e6-00008-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:47+00:00", "notes": ""}
+{"pair_id": "qa-a4b810cad99df312-00000-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:31+00:00", "notes": ""}
+{"pair_id": "qa-a4b810cad99df312-00003-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:34+00:00", "notes": ""}
+{"pair_id": "qa-a4b810cad99df312-00005-multi_hop", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:31+00:00", "notes": ""}
+{"pair_id": "qa-a4b810cad99df312-00006-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:42+00:00", "notes": ""}
+{"pair_id": "qa-afb3c5e4e569f6b2-00000-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:36+00:00", "notes": ""}
+{"pair_id": "qa-afb3c5e4e569f6b2-00004-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:43+00:00", "notes": ""}
+{"pair_id": "qa-afb3c5e4e569f6b2-00007-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:43+00:00", "notes": ""}
+{"pair_id": "qa-b3230f942fb55cfe-00002-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:43+00:00", "notes": ""}
+{"pair_id": "qa-b3230f942fb55cfe-00004-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:51+00:00", "notes": ""}
+{"pair_id": "qa-b3230f942fb55cfe-00006-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:43+00:00", "notes": ""}
+{"pair_id": "qa-b3230f942fb55cfe-00008-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:53+00:00", "notes": "heuristic-drafted: lower quality, verify carefully"}
+{"pair_id": "qa-c0039283c127ceac-00007-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:43+00:00", "notes": ""}
+{"pair_id": "qa-c0039283c127ceac-00013-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:40+00:00", "notes": ""}
+{"pair_id": "qa-c0039283c127ceac-00023-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:56+00:00", "notes": ""}
+{"pair_id": "qa-c8bdddc202df7186-00000-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:44+00:00", "notes": ""}
+{"pair_id": "qa-c8bdddc202df7186-00003-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:44+00:00", "notes": ""}
+{"pair_id": "qa-c8bdddc202df7186-00006-numeric", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:33+00:00", "notes": ""}
+{"pair_id": "qa-c8bdddc202df7186-00007-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:44:59+00:00", "notes": ""}
+{"pair_id": "qa-cd1e4f5c0b211131-00003-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:44+00:00", "notes": ""}
+{"pair_id": "qa-cd1e4f5c0b211131-00005-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:44+00:00", "notes": ""}
+{"pair_id": "qa-cd1e4f5c0b211131-00006-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:44+00:00", "notes": ""}
+{"pair_id": "qa-cd1e4f5c0b211131-00007-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:02+00:00", "notes": ""}
+{"pair_id": "qa-d15c40c94baead79-00000-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:20+00:00", "notes": ""}
+{"pair_id": "qa-d15c40c94baead79-00001-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:22+00:00", "notes": ""}
+{"pair_id": "qa-d15c40c94baead79-00004-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:43+00:00", "notes": ""}
+{"pair_id": "qa-d15c40c94baead79-00006-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:05+00:00", "notes": ""}
+{"pair_id": "qa-e75aa8208909715d-00000-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:45+00:00", "notes": ""}
+{"pair_id": "qa-e75aa8208909715d-00001-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:45+00:00", "notes": ""}
+{"pair_id": "qa-e75aa8208909715d-00004-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:22+00:00", "notes": ""}
+{"pair_id": "qa-e75aa8208909715d-00005-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:46+00:00", "notes": ""}
+{"pair_id": "qa-eb462010f96a0386-00003-numeric", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:35+00:00", "notes": ""}
+{"pair_id": "qa-eb462010f96a0386-00004-numeric", "status": "verified", "reviewer": "", "decided_at": "2026-10-16T16:52:29+00:00", "notes": ""}
+{"pair_id": "qa-eb462010f96a0386-00005-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:45+00:00", "notes": ""}
+{"pair_id": "qa-eb462010f96a0386-00008-multi_hop", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:45+00:00", "notes": ""}
+{"pair_id": "qa-ebe6d9cf813777ce-00000-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:46+00:00", "notes": ""}
+{"pair_id": "qa-ebe6d9cf813777ce-00001-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:49+00:00", "notes": ""}
+{"pair_id": "qa-ebe6d9cf813777ce-00005-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:11+00:00", "notes": ""}
+{"pair_id": "qa-ebe6d9cf813777ce-00010-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:46+00:00", "notes": ""}
+{"pair_id": "qa-f3f01fba90ed0e47-00004-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:46+00:00", "notes": ""}
+{"pair_id": "qa-f3f01fba90ed0e47-00005-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:46+00:00", "notes": ""}
+{"pair_id": "qa-f3f01fba90ed0e47-00007-factual", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:46+00:00", "notes": ""}
+{"pair_id": "qa-f3f01fba90ed0e47-00016-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:48+00:00", "notes": ""}
+{"pair_id": "qa-fb85b2f19bbf8e6f-00001-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:14+00:00", "notes": ""}
+{"pair_id": "qa-fb85b2f19bbf8e6f-00002-comparison", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:53+00:00", "notes": ""}
+{"pair_id": "qa-fb85b2f19bbf8e6f-00003-definition", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:45:49+00:00", "notes": ""}
+{"pair_id": "qa-fb85b2f19bbf8e6f-00005-numeric", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:43:56+00:00", "notes": ""}
+{"pair_id": "qa-unans-0000", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:00+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0001", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:02+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0002", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:02+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0003", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:03+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0004", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:03+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0005", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:03+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0006", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:03+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0007", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:08+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0008", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:08+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0009", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:09+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0010", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:09+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0011", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:09+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0012", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:09+00:00", "notes": "unanswerable: off-domain probe"}
+{"pair_id": "qa-unans-0013", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:09+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0014", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:09+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0015", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:10+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0016", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:10+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0017", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:10+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0018", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:10+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0019", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:10+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0020", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:11+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0021", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:11+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0022", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:11+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0023", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:11+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0024", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:11+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0025", "status": "rejected", "reviewer": "Y", "decided_at": "2026-10-16T16:39:20+00:00", "notes": "unanswerable: plausible but uncovered"}
+{"pair_id": "qa-unans-0026", "status": "verified", "reviewer": "Y", "decided_at": "2026-10-16T16:46:12+00:00", "notes": "unanswerable: plausible but uncovered"}
