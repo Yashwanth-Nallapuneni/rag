@@ -158,12 +158,15 @@ capital of Mongolia?"*, an early build retrieved a passage about Toronto
 weather stations, quoted it faithfully and scored **100% supported**. It was
 perfectly grounded and completely useless. The cross-encoder settles this,
 since query-passage relevance is exactly what it is trained for. Measured on
-this corpus, on-topic questions score −4.8 to +7.2 for their best passage and
-off-topic questions −11.0 to −7.8, so the gate sits at −7.0. That number is a
-raw logit for one specific reranker model, so changing the model means it must be
-re-measured.
+the 171 human-verified golden pairs with `BAAI/bge-reranker-base`, answerable
+questions score −1.3 to +10.3 for their best passage and unanswerable ones
+−9.9 to +7.5. The two overlap, so the gate is not a clean separator: it sits at
+−2.5 (1.2 logits below the lowest answerable score, 0 of 145 false refusals,
+9 of 26 unanswerable stopped) and citation enforcement handles the rest. (The
+earlier MiniLM reranker gated at −7.0.) That number is a raw logit for one
+specific reranker model, so changing the model means it must be re-measured.
 
-On a 14-question probe (8 answerable, 6 not) the system currently answers 8/8
+On a 14-question probe (8 answerable, 6 not), run with the earlier MiniLM reranker and not repeated since, the system answered 8/8
 and refuses 6/6. That is a smoke test, not an evaluation; the labelled version
 arrives with the golden dataset in Phase 6.
 

@@ -10,9 +10,9 @@ flowchart TB
     DENSE --> FUSE["Reciprocal rank fusion<br/>rank-based, needs no cross-retriever calibration"]
     SPARSE --> FUSE
 
-    FUSE --> GATE{"Relevance gate<br/>best cross-encoder score ≥ −7.0?"}
+    FUSE --> GATE{"Relevance gate<br/>best cross-encoder score ≥ −2.5?"}
     GATE -->|no| REFUSE["REFUSE<br/>corpus does not cover this"]
-    GATE -->|yes| RERANK["Cross-encoder rerank<br/>ms-marco-MiniLM-L-6-v2<br/>30 candidates → top_k = 5"]
+    GATE -->|yes| RERANK["Cross-encoder rerank<br/>BAAI/bge-reranker-base<br/>30 candidates → top_k = 5"]
 
     RERANK --> CTX["Context assembly<br/>[S1]…[S5] markers + locators<br/>budget 6000 tokens"]
     CTX --> GEN["Generation<br/>versioned prompt answer/v2<br/>provider registry"]

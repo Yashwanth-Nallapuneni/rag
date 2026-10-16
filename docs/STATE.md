@@ -48,9 +48,9 @@ Resolved config (do not change without re-measuring):
 ```
 chunking        650 / 100
 retrieval       hybrid, rrf, weights 0.5/0.5, top_k 5, candidate_k 30
-rerank          on, cross-encoder/ms-marco-MiniLM-L-6-v2
+rerank          on, BAAI/bge-reranker-base (raw logits)
 citation        enforce on, min_supported_ratio 0.80, lexical_threshold 0.45,
-                min_relevance_score -7.0
+                min_relevance_score -2.5
 prompts         answer/v2
 thresholds      faithfulness 0.80, answer_relevancy 0.70,
                 context_precision 0.65, context_recall 0.65,
@@ -126,7 +126,7 @@ RAGPIPE_LLM__REASONING_EFFORT=low RAGPIPE_LLM__MAX_TOKENS=1400`, then
 
 ## 6. Calibration traps: read before touching a threshold
 
-**The relevance gate (`-7.0`) is NOT what refused the answerable question.**
+**The relevance gate (`-7.0`, the MiniLM-era value; now `-2.5` for bge-reranker-base, see docs/decisions.md D9/D10) is NOT what refused the answerable question.**
 An earlier version of this file said it was. That was wrong: the refuse node
 dropped token usage, so a refusal *after* generation (by citation enforcement)
 showed zero tokens and looked like one *before* it. Fixed, with a regression

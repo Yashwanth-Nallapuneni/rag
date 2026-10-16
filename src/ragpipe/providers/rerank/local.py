@@ -11,7 +11,7 @@ from typing import Any
 
 from ..base import ProviderError, RerankResult
 
-DEFAULT_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+DEFAULT_MODEL = "BAAI/bge-reranker-base"
 
 
 def _resolve_device(device: str) -> str:
@@ -32,6 +32,14 @@ class CrossEncoderReranker:
     Scores are the model's raw logits: they may be negative and are not on
     any fixed scale, and are returned as-is (not clamped or renormalised).
     Only their relative order is meaningful.
+
+    The activation is pinned to identity explicitly. sentence-transformers
+    picks a per-model default: a sigmoid for single-label models whose config
+    does not say otherwise (BAAI/bge-reranker-base gets one), identity for
+    models that declare it (ms-marco-MiniLM-L-6-v2 does). The relevance gate
+    (`citation.min_relevance_score`) is a threshold on the raw logit, so the
+    result must not depend on that default. Inputs longer than the model's
+    512-token window are truncated by the tokenizer, never an error.
     """
 
     name = "local"
@@ -57,7 +65,11 @@ class CrossEncoderReranker:
                 "the 'sentence-transformers' package is required for provider "
                 "'local' reranking. Install it with: pip install sentence-transformers"
             ) from exc
-        self._cross_encoder = CrossEncoder(self.model, device=self.device)
+        import torch
+
+        self._cross_encoder = CrossEncoder(
+            self.model, device=self.device, activation_fn=torch.nn.Identity()
+        )
         return self._cross_encoder
 
     def rerank(
@@ -66,9 +78,13 @@ class CrossEncoderReranker:
         if not documents:
             return []
 
+        import torch
+
         cross_encoder = self._ensure_model()
         pairs = [(query, doc) for doc in documents]
-        scores = cross_encoder.predict(pairs, batch_size=self.batch_size)
+        scores = cross_encoder.predict(
+            pairs, batch_size=self.batch_size, activation_fn=torch.nn.Identity()
+        )
 
         # `index` must point back into the caller's original `documents`
         # list -- the pipeline uses it to map results back to source chunks

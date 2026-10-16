@@ -98,3 +98,29 @@ def test_local_embedder_real_weights():
     )
     assert len(q) == s.embeddings.dimension
     assert _cos(q, docs[0]) > _cos(q, docs[1])
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "model", ["BAAI/bge-reranker-base", "cross-encoder/ms-marco-MiniLM-L-6-v2"]
+)
+def test_local_reranker_returns_raw_logits_not_probabilities(model):
+    """The relevance gate is a threshold on the raw logit. sentence-transformers
+    applies a sigmoid by default to bge-reranker-base, which would silently make
+    every score land in (0, 1) and the gate meaningless. Pin that it does not.
+    Downloads the model on first run."""
+    from ragpipe.providers.rerank.local import CrossEncoderReranker
+
+    r = CrossEncoderReranker(model=model, device="cpu")
+    results = r.rerank(
+        "what is the capital of Mongolia?",
+        [
+            "Toronto weather stations record rainfall and snowfall totals.",
+            "Ulaanbaatar is the capital of Mongolia.",
+            "x " * 1500,  # far past the 512-token window: must truncate, not raise
+        ],
+    )
+    scores = {x.index: x.score for x in results}
+    assert min(scores.values()) < 0, scores  # a probability could never be negative
+    assert max(scores.values()) > 1, scores  # nor exceed 1
+    assert results[0].index == 1

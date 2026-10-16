@@ -54,7 +54,7 @@ and its evidence.
 Refusal is a first-class outcome of this pipeline, not an error, so it is
 rendered as the headline: the `AnswerStatus`, the human-readable
 `refusal_reason` (e.g. "best passage scored -10.98 for relevance... below
-the -7.00 threshold"), and, critically, the passages that *were* retrieved
+the -2.50 threshold"), and, critically, the passages that *were* retrieved
 anyway, so you can see why they weren't good enough.
 
 **Citations**
