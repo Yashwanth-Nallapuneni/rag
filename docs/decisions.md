@@ -191,3 +191,41 @@ scoring the gate. MiniLM is not kept as a separate gate scorer.
 (unanswerable but answered). If that is above 0, the fallback is MiniLM-L6
 as a gate-only scorer at -7.0 over the shown passages: AUROC 0.88, 0/145
 false refusals, measured in the retrieval experiment.
+
+### D12. Fix three verifier false negatives; let contrast words send negation mismatches to the judge
+
+**Decision:**
+- Read space-grouped thousands ("1 000", "5 000") as one number.
+- Stop reading inline enumerators ("(1)", "(2)", "(i)") as figures.
+- When a claim negates and its cited passage has no negation word but does
+  contain a contrastive construction ("otherwise", "rather than",
+  "instead of", "in contrast"), escalate the claim to the LLM judge instead of
+  failing it outright. A claim that negates against a passage with neither
+  negation nor contrast still fails hard.
+
+**Why:**
+- After the reranker switch, 6 of 23 false refusals were the verifier
+  rejecting correct answers:
+  - "N = 1 000" parsed as 1 and 0.
+  - "(2)" read as the figure 2.
+  - Four faithful paraphrases rejected as contradictions. "Set to 0 when
+    (j,i) is not in E" against "and 0 otherwise", for example.
+- The original rule ("a model must not talk itself into accepting a negation
+  the passage does not contain") is kept where it matters: the passage gives
+  no hint of contrast. A contrastive passage can genuinely support a negated
+  paraphrase, and the judge exists to settle exactly that kind of ambiguity.
+- Numeric mismatches are still never escalated.
+
+### D13. Answer prompt v3: the first sentence must carry a citation too
+
+**Decision:** A new prompt version (v2 stays as it was) adds an explicit
+rule: no introductory or summary sentence without a marker, including the
+first sentence. It also includes one short example.
+
+**Why:** 10 of 23 false refusals had a correct, cited body with an uncited
+opening sentence ("On-Demand Attention (ODA) is a decoding method...").
+Under the sentence-level traceability rule those refusals are correct, and
+the rule stays. The model was breaking a rule v2 already states, so the fix
+belongs in the instruction, not in the verifier. Prompts are versioned and
+the version goes into the config fingerprint, so the change is traceable in
+every eval result.

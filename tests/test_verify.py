@@ -69,7 +69,8 @@ def test_wrong_number_is_caught_despite_perfect_wording():
 def test_negation_flip_is_caught():
     """Coverage alone cannot see this: the sentences share almost every word."""
     j = judge_lexically(
-        "The Transformer does not use self-attention instead of recurrence.", PASSAGE
+        "The Transformer does not use self-attention.",
+        "The Transformer uses multi-head self-attention. It parallelizes training.",
     )
     assert not j.negation_ok
     assert j.certain_fail
@@ -307,3 +308,138 @@ def test_leading_zero_normalisation_makes_no_false_matches():
 def test_dotted_identifiers_still_yield_integers_in_evidence():
     """'Appendices A.1, A.2 and A.3' must still supply the integer 3."""
     assert judge_lexically("see the 3 appendices", "provided in Appendices A.1, A.2 and A.3").numbers_ok
+
+
+# --- D12: grouped thousands, inline enumerators, negation vs contrast ------
+
+
+@pytest.mark.parametrize("sp", [" ", " ", " ", " "])
+def test_space_grouped_thousands_match_ungrouped_evidence(sp):
+    claim = f"Both use N = 1{sp}000 and N = 5{sp}000 samples."
+    j = judge_lexically(claim, "We set N = 1000 and N = 5000 samples.")
+    assert j.numbers_ok, j.missing_numbers
+    # evidence side grouped too
+    j = judge_lexically("We use N = 5000 samples.", f"We use N = 5{sp}000 samples.")
+    assert j.numbers_ok
+
+
+def test_grouped_thousands_still_checked():
+    assert not judge_lexically("N = 1 000 samples", "N = 1001 samples").numbers_ok
+    assert _numbers("N = 1 000") == {"1000"}
+    assert _numbers("N = 1 000 000") == {"1e+06"}
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("in 2024 2025 we ran", {"2024", "2025"}),  # 4-digit first group
+        ("Table 2 100 samples", {"100"}),  # reference stripped first
+        ("a 3 100-token window", {"3", "100"}),  # hyphenated unit
+        ("scores 12 345 6789", {"12", "345", "6789"}),  # last group has 4 digits
+        ("values 5 10 100", {"5", "10", "100"}),
+        ("ids 2024 100 200", {"2024", "100", "200"}),  # digit-space before group
+    ],
+)
+def test_thousands_not_falsely_merged(text, expected):
+    assert _numbers(text) == expected
+
+
+def test_inline_enumerators_are_not_figures():
+    claim = "The method (1) encodes tokens and (2) pools them, then (ii) scores; (a) done."
+    assert _numbers(claim) == set()
+    assert _numbers("Equation (3) shows the loss.") == set()
+
+
+def test_parenthesised_real_values_are_still_figures():
+    assert _numbers("accuracy (92.1) on the test set") == {"92.1"}
+    assert _numbers("the cohort (n = 51) improved") == {"51"}
+    assert _numbers("loss fell to (92) points") == {"92"}  # > 20: not an enumerator
+    assert not judge_lexically("accuracy (92.1) here", "accuracy was 90.0 here").numbers_ok
+
+
+E_PASSAGE = "The entry is 1 if (j,i) is in E, and 0 otherwise."
+
+
+def test_negation_vs_contrast_is_ambiguous_not_hard_fail():
+    j = judge_lexically("The entry is set to 0 when (j,i) is not in E.", E_PASSAGE)
+    assert j.negation_ok and j.negation_ambiguous and not j.certain_fail
+    for passage in (
+        "It treats edges as primitives rather than derived objects.",
+        "Method A merges; in contrast, method B keeps them separate.",
+    ):
+        assert judge_lexically("It does not treat edges as primitives.", passage).negation_ambiguous
+
+
+def test_negation_without_contrast_still_hard_fails():
+    j = judge_lexically(
+        "Dropout does not improve the model.", "Dropout improves the model on this task."
+    )
+    assert not j.negation_ok and j.certain_fail and not j.negation_ambiguous
+    # real case qa-3b3fbd6bf534abc2-00000: no contrast word -> still a hard fail
+    j = judge_lexically(
+        "Existing methods cannot directly address the problem.",
+        "Existing methods face significant limitations on the problem.",
+    )
+    assert not j.negation_ok
+
+
+def test_lexical_verifier_falls_back_to_coverage_for_contrast(settings):
+    v = LexicalVerifier(settings)
+    verdicts, _ = v.verify(
+        "The entry is 1 if (j,i) is in E, and not 1 otherwise. [S1]", _rendered(E_PASSAGE), "q"
+    )
+    assert verdicts[0].reason.startswith("100%") or "%" in verdicts[0].reason
+    assert "negates" not in verdicts[0].reason
+    assert verdicts[0].supported == (verdicts[0].support_score >= settings.citation.lexical_threshold)
+
+
+def _fake_llm(monkeypatch, supported):
+    calls = []
+
+    class Judge:
+        def judge(self, claims, rendered):
+            calls.append([c.text for c in claims])
+            return {i: (supported, 0.9, "ok") for i in range(1, len(claims) + 1)}
+
+    monkeypatch.setattr(HybridVerifier, "llm", property(lambda self: Judge()))
+    return calls
+
+
+def test_hybrid_escalates_negation_with_contrast(settings, monkeypatch):
+    settings.citation.verifier = "hybrid"
+    calls = _fake_llm(monkeypatch, True)
+    verdicts, ratio = HybridVerifier(settings).verify(
+        "The entry is not 1 if (j,i) is in E, and 0 otherwise. [S1]", _rendered(E_PASSAGE), "q"
+    )
+    assert calls and verdicts[0].supported and ratio == 1.0
+    assert verdicts[0].reason.startswith("judge")
+
+
+def test_hybrid_never_escalates_negation_without_contrast(settings, monkeypatch):
+    settings.citation.verifier = "hybrid"
+    calls = _fake_llm(monkeypatch, True)
+    verdicts, _ = HybridVerifier(settings).verify(
+        "BLEU does not improve by 3.1 points. [S1]",
+        _rendered("BLEU improves by 3.1 points on the English-German task."),
+        "q",
+    )
+    assert not calls and not verdicts[0].supported
+
+
+def test_hybrid_never_escalates_numeric_mismatch_with_contrast(settings, monkeypatch):
+    settings.citation.verifier = "hybrid"
+    calls = _fake_llm(monkeypatch, True)
+    verdicts, _ = HybridVerifier(settings).verify(
+        "The entry is 7 if (j,i) is in E, and 0 otherwise. [S1]", _rendered(E_PASSAGE), "q"
+    )
+    assert not calls and not verdicts[0].supported
+
+
+def test_space_grouped_claim_matches_comma_grouped_evidence():
+    """Replay regression: '363 841' vs '363,841' must not become pass->fail."""
+    j = judge_lexically(
+        "The subset has 363 841 samples.", "The FT subset supplies 363,841 of these."
+    )
+    assert j.numbers_ok
+    assert judge_lexically("up to 100 000", "log for up to 100,000.").numbers_ok
+    assert not judge_lexically("up to 100 000", "log for up to 100,001.").numbers_ok

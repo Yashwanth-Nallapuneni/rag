@@ -53,6 +53,16 @@ _NEGATION = {
     "fail", "failed", "unable", "absent", "lacks", "lack", "nothing",
     "unsupported", "insufficient", "worse", "degrades", "decreases",
 }
+# A passage that contrasts ("... and 0 otherwise", "rather than X") can support
+# a negated paraphrase ("not in E") with no negation word of its own. See D12.
+_CONTRAST_RE = re.compile(
+    r"\b(?:otherwise|rather\s+than|instead\s+of|in\s+contrast|by\s+contrast|"
+    r"as\s+opposed\s+to|unlike|conversely)\b",
+    re.IGNORECASE,
+)
+# Marker carried in the lexical verdict's reason so HybridVerifier can tell an
+# ambiguous negation (escalate) from a hard one (never escalate).
+_CONTRAST_REASON = "negation unresolved (passage is contrastive)"
 _STOP = {
     "the", "a", "an", "and", "or", "but", "if", "then", "than", "that", "this",
     "these", "those", "of", "in", "on", "at", "to", "for", "with", "by", "from",
@@ -81,11 +91,60 @@ def _content_words(text: str) -> set[str]:
 _ENUM_PREFIX_RE = re.compile(
     r"^\s*[\(\[]?\s*(?:\d{1,2}|[ivxIVX]{1,4}|[a-zA-Z])\s*(?:[\)\]]\s*|\.\s+)"
 )
+# Inline enumerators: "(1) foo, (2) bar", "(i)", "(a)". Rule: a parenthesised
+# bare integer 1-20, roman numeral (up to xx) or single letter, preceded by
+# start/whitespace/colon and immediately followed by whitespace and a word.
+# Decimals "(92.1)", large values "(92)", and anything with other content
+# "(n = 51)" never match, so real figures are still checked.
+_INLINE_ENUM_RE = re.compile(
+    r"(?<![^\s:])\(\s*(\d{1,2}|[ivxIVX]{1,4}|[a-zA-Z])\s*\)(?=\s+[A-Za-z])"
+)
+
+
+def _strip_inline_enums(text: str) -> str:
+    def repl(m: re.Match[str]) -> str:
+        tok = m.group(1)
+        if tok.isdigit() and not 1 <= int(tok) <= 20:
+            return m.group(0)
+        return " "
+
+    return _INLINE_ENUM_RE.sub(repl, text)
+
+
+# Space-grouped thousands ("N = 1 000", also NBSP / thin / narrow no-break
+# space). Conservative: first group 1-3 digits not itself preceded by a digit,
+# dot, comma or "digit + space"; every later group exactly 3 digits; not
+# followed by a digit, a decimal-continuing digit, or "-word" ("3 100-token").
+# "2024 2025" (4-digit first group) and "Table 2 100 samples" (reference
+# stripped first) are therefore not merged.
+_SPACES = " \u00a0\u202f\u2009"
+_THOUSANDS_RE = re.compile(
+    rf"(?<![\d.,])(?<!\d[{_SPACES}])(\d{{1,3}})((?:[{_SPACES}]\d{{3}})+)(?!\d)(?![{_SPACES}]\d)(?!-\w)(?![.,]\d)"
+)
+
+
+# Comma-grouped thousands ("363,841"): evidence side only, as an extra reading
+# on top of the split one, so a space-grouped claim "363 841" matches it.
+_COMMA_THOUSANDS_RE = re.compile(r"(?<![\d.,])(\d{1,3})((?:,\d{3})+)(?![\d])(?!,\d)")
+
+
+def _merge_comma_thousands(text: str) -> str:
+    return _COMMA_THOUSANDS_RE.sub(
+        lambda m: m.group(1) + m.group(2).replace(",", ""), text
+    )
+
+
+def _merge_thousands(text: str) -> str:
+    return _THOUSANDS_RE.sub(
+        lambda m: m.group(1) + re.sub(rf"[{_SPACES}]", "", m.group(2)), text
+    )
+
+
 # "Figure 3", "Table 2", "Section 4.1", "Eq. 7", "S5" point at something; they
 # do not claim a quantity, and their numbering routinely differs from the
 # passage that is cited.
 _REFERENCE_NUM_RE = re.compile(
-    r"\b(?:figure|fig|table|tab|section|sec|equation|eq|appendix|app|supplementary|algorithm|alg|step|item|re)\s*\.?\s*[\dSivx]+(?:\.\d+)*",
+    r"\b(?:figure|fig|table|tab|section|sec|equation|eq|appendix|app|supplementary|algorithm|alg|step|item|re)\s*\.?\s*\(?[\dSivx]+(?:\.\d+)*\)?",
     re.IGNORECASE,
 )
 
@@ -99,6 +158,8 @@ def _numbers(text: str) -> set[str]:
     """
     text = _ENUM_PREFIX_RE.sub("", text)
     text = _REFERENCE_NUM_RE.sub(" ", text)
+    text = _strip_inline_enums(text)
+    text = _merge_thousands(text)
     out: set[str] = set()
     for raw in _NUM_RE.findall(text):
         token = raw.rstrip("%").lstrip("+")
@@ -122,8 +183,10 @@ def _evidence_numbers(text: str) -> set[str]:
     the evidence side must be inclusive, or "Qwen 3.6-35B" in an answer is
     rejected against a passage writing "Qwen3.6-35B" -- the digits are glued
     to letters there, so the strict pattern never sees 3.6 at all."""
-    out = _numbers(text)
-    for raw in _ANY_NUM_RE.findall(text):
+    out = _numbers(text) | _numbers(_merge_comma_thousands(text))
+    # Inclusive: read grouped thousands both merged and as separate numbers.
+    merged = _merge_thousands(_merge_comma_thousands(text))
+    for raw in _ANY_NUM_RE.findall(merged) + _ANY_NUM_RE.findall(text):
         # Both the signed and unsigned reading: in "T-1/2" the dash is an
         # exponent sign, in "3.6-35B" a separator. Inclusive is the safe
         # direction here -- the claim side decides what is asserted.
@@ -146,6 +209,9 @@ class LexicalJudgement:
     numbers_ok: bool
     negation_ok: bool
     missing_numbers: set[str]
+    # Claim negates, passage has no negation word but does contrast (D12):
+    # not a hard failure; settled by the judge (hybrid) or by coverage (lexical).
+    negation_ambiguous: bool = False
 
     @property
     def certain_fail(self) -> bool:
@@ -171,13 +237,16 @@ def judge_lexically(claim: str, evidence: str) -> LexicalJudgement:
     evidence_neg = bool(_negations(evidence))
     # Only flag when the claim asserts a negation its evidence does not. The
     # reverse (evidence hedges, claim does not) is caught by coverage.
-    negation_ok = not (claim_neg and not evidence_neg)
+    mismatch = claim_neg and not evidence_neg
+    ambiguous = mismatch and bool(_CONTRAST_RE.search(evidence))
+    negation_ok = not mismatch or ambiguous
 
     return LexicalJudgement(
         coverage=coverage,
         numbers_ok=not missing,
         negation_ok=negation_ok,
         missing_numbers=missing,
+        negation_ambiguous=ambiguous,
     )
 
 
@@ -244,6 +313,8 @@ class LexicalVerifier:
                     f"cited passage"
                     + ("" if supported else f" (below {self.cfg.lexical_threshold:.0%})")
                 )
+                if judged.negation_ambiguous:
+                    reason += f"; {_CONTRAST_REASON}"
 
             verdicts.append(
                 ClaimVerdict(
@@ -380,13 +451,18 @@ class HybridVerifier:
         threshold = self.cfg.lexical_threshold
         # Escalate only the ambiguous band: confidently-covered claims and
         # hard numeric/negation failures are already settled.
+        # A negation the passage's contrast construction might support (D12)
+        # is escalated too, even when coverage alone would pass it.
         uncertain = [
             i
             for i, v in enumerate(verdicts)
             if v.cited_chunk_ids
             and "figures absent" not in v.reason
             and "negates" not in v.reason
-            and threshold * 0.5 <= v.support_score < min(1.0, threshold * 1.6)
+            and (
+                threshold * 0.5 <= v.support_score < min(1.0, threshold * 1.6)
+                or (_CONTRAST_REASON in v.reason and v.support_score >= threshold * 0.5)
+            )
         ]
 
         if uncertain:
