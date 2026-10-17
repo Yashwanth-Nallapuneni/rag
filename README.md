@@ -12,15 +12,11 @@ The point of this project is not the demo. It is the discipline around it:
 hybrid retrieval, cross-encoder reranking, enforced citations and an
 evaluation harness that **gates CI on answer faithfulness**.
 
-> **Status: built end to end; final measurement pending.** Ingestion, hybrid
-> retrieval, reranking, enforced citations, the FastAPI service, the
-> Streamlit demo, the RAGAS harness and the CI quality gate all work, with
-> 317 offline tests. 180 golden QA pairs are drafted and pre-screened; the
-> headline numbers wait on their human review (`make review`).
->
-> Numbers marked **pending measurement** below are not yet measured. They stay
-> blank until a real evaluation run produces them. An estimated number in
-> this README would make every other number in it worthless.
+> **Status: complete.** Ingestion, hybrid retrieval, reranking, enforced
+> citations, the FastAPI service, the Streamlit demo, the RAGAS harness and
+> the CI quality gate all work, with 363 offline tests. The final numbers
+> below come from 171 human-verified golden QA pairs; the run files are named
+> in the Results section.
 
 ## Why the provider abstraction
 
@@ -42,7 +38,7 @@ make index       # embed + store  -> ChromaDB, ~35s
 make ask Q="what problem does self-attention solve?"
 make serve       # API on :8000, interactive docs at /docs
 make ui          # Streamlit demo on :8501
-make test        # 317 offline tests
+make test        # 363 offline tests
 ```
 
 > **Resuming work on this?** [`docs/STATE.md`](docs/STATE.md) is the current
@@ -81,18 +77,68 @@ conditional edges routing to a terminal `refuse` node at five distinct points.
 
 ## Results
 
+### Corpus and retrieval diagnostics
+
 | | |
 |---|---|
 | Documents / chunks | 40 arXiv papers, 1054 chunks |
 | Chunks carrying a page number | 100% |
 | Chunks carrying a section | 98.8% |
 | Adjacent chunks sharing overlap text | 97.9% (mean 85 words) |
-| BM25 vs dense on exact identifiers (R@1) | **0.300 vs 0.060** |
-| Reranking lift on a weak first pass (R@1) | **0.256 → 0.483 (+89%)** |
-| Faithfulness (RAGAS) | *pending measurement* |
-| Faithfulness before/after reranking | *pending measurement* |
-| Answer relevance / context precision / recall | *pending measurement* |
-| Refusal accuracy on the golden set | *pending measurement* |
+| BM25 vs dense on exact identifiers (known-item R@1) | **0.300 vs 0.060** |
+| Reranking lift on a weak first pass (known-item R@1, earlier MiniLM experiment) | 0.256 → 0.483 |
+| Held-out Recall@5, bge-reranker-base vs MiniLM reranker (test n=58) | **0.879 vs 0.707**, bootstrap 95% CI on the difference [+0.05, +0.29] |
+
+The known-item figures come from a synthetic benchmark that is lexically
+biased and from the superseded MiniLM setup. The held-out Recall@5 row is the
+one that decided the reranker choice
+(`eval_results/retrieval_experiment_20261016T200538Z*`).
+
+### Answer quality: reranking on vs off
+
+Evaluated on 171 human-verified golden pairs (145 answerable, 26
+unanswerable). Generator `openai/gpt-oss-120b`, judge
+`meta-llama/llama-3.3-70b-instruct`, answer prompt v3, hybrid BM25 + dense
+with RRF fusion, `candidate_k` 30, `top_k` 5. The two runs differ only in the
+reranker.
+
+| Metric | Rerank on | Rerank off |
+|---|---|---|
+| Faithfulness | 0.933 | 0.931 |
+| Answer relevancy | 0.820 | 0.813 |
+| Context precision | 0.910 | 0.871 |
+| Context recall | 0.964 | 0.985 |
+| Refusal accuracy | 0.953 | 0.930 |
+| Refusal precision | 0.765 | 0.684 |
+| Refusal recall | 1.000 | 1.000 |
+| Refusal F1 | 0.867 | 0.813 |
+| Answered | 137 | 133 |
+| False refusals (answerable, refused) | 8 | 12 |
+| False answers (unanswerable, answered) | 0 | 0 |
+
+On the 128 pairs answered in both runs: faithfulness 0.929 vs 0.929, context
+precision 0.905 vs 0.875, context recall 0.961 vs 0.984 (on vs off).
+
+Run files: rerank on `eval_results/eval_20261017T011212Z_5f0a41881655.json`
+(commit d276390, `BAAI/bge-reranker-base`); rerank off
+`eval_results/eval_20261017T033055Z_4d290a449c2f.json` (commit 50fc0ca, the
+same code plus a decision-log commit, run with `--no-rerank`). Result files
+are git-ignored, so they exist on the machine that ran them rather than in a
+clone.
+
+**What the comparison shows.** Reranking does not improve faithfulness: 0.933
+vs 0.931, and identical on the pairs both runs answered. What it improves is
+context precision (0.910 vs 0.871) and refusal behaviour (accuracy 0.953 vs
+0.930, false refusals 12 down to 8). Context recall is slightly higher with
+reranking off (0.985 vs 0.964).
+
+**Nondeterminism.** The generator is not deterministic. Two earlier,
+near-identical runs differed on 13 pairs, so differences of a few pairs
+between single runs (including the 4 fewer false refusals here) are within
+noise. These are single-run numbers.
+
+False refusals across the iteration, with thresholds never loosened:
+32 → 23 → 9 → 8 (see `docs/decisions.md`, D19).
 
 Retrieval numbers and the reason the most eye-catching one in them is a trap:
 [`docs/retrieval_findings.md`](docs/retrieval_findings.md).
@@ -110,7 +156,7 @@ vector store's contents, not the chunk file) because two independently built
 indexes drift, and a BM25 hit for a chunk the store lacks yields a citation
 whose click-through 404s.
 
-Measured before/after numbers, and why the most eye-catching number in them is
+Measured retrieval numbers, and why the most eye-catching number in them is
 a trap worth understanding, are in
 [`docs/retrieval_findings.md`](docs/retrieval_findings.md).
 

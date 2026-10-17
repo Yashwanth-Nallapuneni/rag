@@ -21,3 +21,7 @@ build/
 eval_results/*.json
 eval_results/*.txt
 !eval_results/.gitkeep
+
+# Regenerated review-tool outputs (committed copies live in eval/review_record/)
+eval/review_sheet.html
+eval/review_suggestions.jsonl

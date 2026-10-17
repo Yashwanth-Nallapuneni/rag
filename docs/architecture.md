@@ -15,7 +15,7 @@ flowchart TB
     GATE -->|yes| RERANK["Cross-encoder rerank<br/>BAAI/bge-reranker-base<br/>30 candidates → top_k = 5"]
 
     RERANK --> CTX["Context assembly<br/>[S1]…[S5] markers + locators<br/>budget 6000 tokens"]
-    CTX --> GEN["Generation<br/>versioned prompt answer/v2<br/>provider registry"]
+    CTX --> GEN["Generation<br/>versioned prompt answer/v3<br/>provider registry"]
 
     GEN --> SENT{"Refusal sentinel<br/>emitted?"}
     SENT -->|yes| REFUSE

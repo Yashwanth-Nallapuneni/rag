@@ -1,6 +1,6 @@
 # Project state and handoff
 
-Last updated: 2026-09-24. **317 passed** (offline, no API key). OpenRouter spend to date: about $0.25 of the $5 cap.
+Last updated: 2026-10-17. **Project complete.** 363 passed offline (`pytest -m "not slow"`, 4 slow tests deselected). OpenRouter spend: $3.80 of the $5 cap (real `/key` delta).
 
 This file exists so a fresh session can resume without re-deriving anything or
 undoing a decision that was made for a measured reason. Read it before changing
@@ -51,7 +51,7 @@ retrieval       hybrid, rrf, weights 0.5/0.5, top_k 5, candidate_k 30
 rerank          on, BAAI/bge-reranker-base (raw logits)
 citation        enforce on, min_supported_ratio 0.80, lexical_threshold 0.45,
                 min_relevance_score -2.5
-prompts         answer/v2
+prompts         answer/v3
 thresholds      faithfulness 0.80, answer_relevancy 0.70,
                 context_precision 0.65, context_recall 0.65,
                 refusal_accuracy 0.80
@@ -68,59 +68,57 @@ cross-encoder reranking over a 20-30 candidate pool, 2.3 citation enforcement
 with refusal, 2.4 versioned prompts in `prompts/`. Tech stack: LangGraph,
 ChromaDB, sentence-transformers, RAGAS, FastAPI, GitHub Actions.
 
-**Two items are open:**
-
-1. **Fusion weight tuning (spec 2.1) is PARTIAL.** Both mechanisms exist and a
-   full sweep was run, but the weights were deliberately left at 0.5/0.5. See
-   §6. This is blocked on the golden dataset, not forgotten.
-2. **Spec Phase 3 deliverables need real numbers:** the golden dataset itself,
-   the faithfulness figures, before/after reranking faithfulness, the CI
-   screenshot and the resume bullet's X.
-
-**Also required by the spec and not yet done: the repo must be PUBLIC.** It is
-currently private (unauthenticated API returns 404). The CI badges and the
-Mermaid architecture diagrams cannot be seen or verified until it is public.
+**One item is partial:** fusion weight tuning (spec 2.1). Both mechanisms
+exist and a full sweep was run, but the weights were deliberately left at
+0.5/0.5 (see §6). The golden dataset, faithfulness figures and before/after
+reranking comparison are now done (§4). The repo is public.
 
 ---
 
-## 4. Blocked on the project owner
+## 4. Final measurement (done)
 
-Done by the owner: OpenRouter key in `.env` and as the `OPENROUTER_API_KEY`
-GitHub secret; repo is public.
+The golden set was reviewed (171 human-verified pairs: 145 answerable, 26
+unanswerable) and the final runs were made on it. Same generator
+(`openai/gpt-oss-120b`), judge (`meta-llama/llama-3.3-70b-instruct`), prompt
+v3, hybrid RRF, `candidate_k` 30, `top_k` 5.
 
-**The only blocker left: review the golden set (~45 min).**
-`eval/golden_dataset.jsonl`, 180 pairs (153 answerable, 27 unanswerable).
-Run `PYTHONPATH=src .venv/bin/streamlit run scripts/review_golden.py`.
-An LLM pre-screen (`eval/golden_prescreen.jsonl`) flags 39 pairs as suspect
-and the UI shows them first, with reasons. It is advisory: it never writes
-the ledger, and `load_verified()` returns only human-approved pairs, so this
-cannot be faked and must not be worked around. Trust its duplicate and
-"paper answers this after all" flags; treat "not standalone" as a prompt to
-re-read the question.
+| Metric | Rerank on | Rerank off |
+|---|---|---|
+| Faithfulness | 0.933 | 0.931 |
+| Answer relevancy | 0.820 | 0.813 |
+| Context precision | 0.910 | 0.871 |
+| Context recall | 0.964 | 0.985 |
+| Refusal accuracy | 0.953 | 0.930 |
+| False refusals / false answers | 8 / 0 | 12 / 0 |
+
+- Rerank on: `eval_results/eval_20261017T011212Z_5f0a41881655.json` (commit d276390).
+- Rerank off: `eval_results/eval_20261017T033055Z_4d290a449c2f.json` (commit 50fc0ca, same code as d276390 plus a decision-log commit).
+- Reading: reranking does not improve faithfulness. It improves context
+  precision, refusal accuracy and false refusals (12 to 8). Context recall is
+  slightly higher with rerank off. Generation is nondeterministic, so a few
+  pairs of difference are within noise. Full table and subset numbers in the
+  README; reasoning in `docs/decisions.md` (D18, D19).
+- Held-out retrieval: bge-reranker-base vs MiniLM reranker Recall@5 0.879 vs
+  0.707 (test n=58, 95% bootstrap CI on the difference [+0.05, +0.29]).
+- Spend: the OFF run cost $0.422 real against $0.329 reported by the harness;
+  the gap is verifier judge calls the harness does not count. Total project
+  spend is $3.80 of $5.
 
 ---
 
-## 5. Next actions, in dependency order
+## 5. Remaining (all optional)
 
-```
-1. Owner verifies the 180 drafts (need >= 150 approved)         scripts/review_golden.py
-2. Re-run gate calibration on VERIFIED pairs                     scripts/calibrate_gate.py
-3. Fusion tuning on VERIFIED pairs                               scripts/tune_fusion.py
-4. Full eval on verified pairs  (the spec's numbers)             scripts/run_eval.py
-5. Before/after reranking faithfulness  (--rerank / --no-rerank, same dataset+judge)
-6. Revisit the 7 remaining pilot false refusals on verified data (§6)
-7. PR with the numbers, CI screenshot, fill the resume bullet's X
-```
-
-Shortcuts (2026-10-01): `make review`, `make calibrate`, `make tune-fusion`,
-`make eval-dry`, `make corpus-restore`. The eval workflow now skips
-docs-only changes, so editing this file costs nothing in CI.
+- Merge Dependabot PR #2 and confirm the CI checks pass (being done by the
+  orchestrator after this commit): status pending.
+- Fusion weight tuning (spec 2.1) stays at 0.5/0.5 RRF by measurement (see §6).
+- Any further false-refusal work is inside run-to-run noise (decisions D19).
 
 Run config for every paid run (OpenRouter):
 `RAGPIPE_LLM__PROVIDER=openrouter RAGPIPE_LLM__MODEL=openai/gpt-oss-120b
 RAGPIPE_LLM__REASONING_EFFORT=low RAGPIPE_LLM__MAX_TOKENS=1400`, then
 `--judge-provider openrouter --judge-model meta-llama/llama-3.3-70b-instruct
---ragas-workers 2`. A 40-pair run costs ~$0.07, so 150 pairs ~$0.26.
+--ragas-workers 2`. A full 171-pair run costs about $0.33 as reported and
+about $0.42 real.
 
 ---
 
@@ -263,21 +261,16 @@ python scripts/ci_gate.py <results.json> --baseline <previous.json>
 - 40 documents, 1054 chunks; 100% carry a page number, 98.8% a section
 - 97.9% of adjacent chunk pairs share overlap text (mean 85 words)
 - Known-item Recall@1: BM25 0.300 vs dense 0.060 on exact identifiers
-- Known-item Recall@1: reranking lifts dense 0.256 → 0.483 (+89%)
-- Section-label noise 0.0% (was 3.6%)
-- 317 passed offline
+- Known-item Recall@1: reranking lifts dense 0.256 to 0.483 (earlier MiniLM
+  experiment, superseded setup)
+- Held-out Recall@5: bge-reranker-base 0.879 vs MiniLM 0.707 (CI [+0.05, +0.29])
+- Final runs on 171 human-verified pairs: see §4
+- False refusals 32 -> 23 -> 9 -> 8 with thresholds never loosened
+- 363 passed offline
 
-Call the retrieval figures **"known-item Recall@1"**, never "precision". The
+Call the known-item figures **"known-item Recall@1"**, never "precision". The
 diagnostic is lexically biased and the honest framing is a strength: it shows
 the limits of one's own benchmark.
 
-**NOT measured, must stay blank:**
-- Faithfulness, answer relevance, context precision/recall on the golden set
-- Before/after reranking faithfulness
-- Refusal accuracy (pilot figures 0.675 -> 0.75 -> 0.825 are 40 UNVERIFIED pairs: engineering diagnostics, not results)
-- The resume bullet's X
-
-The only real-judge RAGAS run so far graded **one** sample (faithfulness 1.000,
-answer_relevancy 0.916) on **unverified** pairs. It proves the harness runs; it
-measures nothing. Every result file records `pairs_human_verified` plus a
-caveat string for exactly this reason.
+Do not claim reranking improves faithfulness: the OFF run shows 0.933 vs
+0.931. Every result file records `pairs_human_verified` plus a caveat string.
