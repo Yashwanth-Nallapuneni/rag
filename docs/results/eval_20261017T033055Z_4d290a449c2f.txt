@@ -1,0 +1,25 @@
+RAGAS evaluation -- 2026-10-17T03:30:55+00:00
+config fingerprint: 4d290a449c2f
+generation model:   openrouter:openai/gpt-oss-120b
+judge model:        openrouter:meta-llama/llama-3.3-70b-instruct
+dataset:            /Users/yashwanth/Desktop/claude/rag/eval/golden_dataset.jsonl (171/171 sampled)
+
+RAGAS metrics:
+  faithfulness           0.9310   threshold 0.8   PASS
+  answer_relevancy       0.8131   threshold 0.7   PASS
+  context_precision      0.8706   threshold 0.65   PASS
+  context_recall         0.9850   threshold 0.65   PASS
+  (excluded 38 refused answer(s) from these averages)
+
+Refusal accuracy (computed by us, not RAGAS):
+  total=171  accuracy=0.9298245614035088  precision=0.6842105263157895  recall=1.0  f1=0.8125000000000001
+  false_answer (unanswerable, wrongly answered -- worst failure): 0
+  false_refusal (answerable, wrongly refused): 12
+
+Cost:
+  total spent: $0.3290  (cap: 0.5)
+    openrouter:openai/gpt-oss-120b: $0.0917  in=514428 out=24235  measured_calls=171 estimated_calls=0
+    openrouter:meta-llama/llama-3.3-70b-instruct: $0.2373  in=1952146 out=131480  measured_calls=1200 estimated_calls=0
+  NOTE: if citation.verifier is 'llm' or 'hybrid', the Answerer's claim-checker makes additional LLM calls not exposed on Answer.usage -- their cost is not included in `cost.by_model` above
+
+OVERALL: PASS

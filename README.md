@@ -92,7 +92,7 @@ conditional edges routing to a terminal `refuse` node at five distinct points.
 The known-item figures come from a synthetic benchmark that is lexically
 biased and from the superseded MiniLM setup. The held-out Recall@5 row is the
 one that decided the reranker choice
-(`eval_results/retrieval_experiment_20261016T200538Z*`).
+(`docs/results/retrieval_experiment_20261016T200538Z.json`).
 
 ### Answer quality: reranking on vs off
 
@@ -119,12 +119,12 @@ reranker.
 On the 128 pairs answered in both runs: faithfulness 0.929 vs 0.929, context
 precision 0.905 vs 0.875, context recall 0.961 vs 0.984 (on vs off).
 
-Run files: rerank on `eval_results/eval_20261017T011212Z_5f0a41881655.json`
-(commit d276390, `BAAI/bge-reranker-base`); rerank off
-`eval_results/eval_20261017T033055Z_4d290a449c2f.json` (commit 50fc0ca, the
-same code plus a decision-log commit, run with `--no-rerank`). Result files
-are git-ignored, so they exist on the machine that ran them rather than in a
-clone.
+Run files, committed under [`docs/results/`](docs/results/): rerank on
+`eval_20261017T011212Z_5f0a41881655.json` (commit d276390,
+`BAAI/bge-reranker-base`); rerank off `eval_20261017T033055Z_4d290a449c2f.json`
+(commit 50fc0ca, the same code plus a decision-log commit, run with
+`--no-rerank`). Each has a matching `.txt` summary, and `docs/results/README.md`
+says where the headline numbers sit in the JSON.
 
 **What the comparison shows.** Reranking does not improve faithfulness: 0.933
 vs 0.931, and identical on the pairs both runs answered. What it improves is

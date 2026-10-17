@@ -91,8 +91,8 @@ v3, hybrid RRF, `candidate_k` 30, `top_k` 5.
 | Refusal accuracy | 0.953 | 0.930 |
 | False refusals / false answers | 8 / 0 | 12 / 0 |
 
-- Rerank on: `eval_results/eval_20261017T011212Z_5f0a41881655.json` (commit d276390).
-- Rerank off: `eval_results/eval_20261017T033055Z_4d290a449c2f.json` (commit 50fc0ca, same code as d276390 plus a decision-log commit).
+- Rerank on: `docs/results/eval_20261017T011212Z_5f0a41881655.json` (commit d276390).
+- Rerank off: `docs/results/eval_20261017T033055Z_4d290a449c2f.json` (commit 50fc0ca, same code as d276390 plus a decision-log commit).
 - Reading: reranking does not improve faithfulness. It improves context
   precision, refusal accuracy and false refusals (12 to 8). Context recall is
   slightly higher with rerank off. Generation is nondeterministic, so a few
