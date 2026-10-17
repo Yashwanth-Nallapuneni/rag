@@ -104,8 +104,25 @@ def has_suspect_markers(text: str) -> bool:
 # abbreviation: it refuses to break after the second letter of any
 # single-letter-dot-single-letter initialism ("U.S.", "U.K.", "e.g" already
 # covered explicitly below for clarity/backcompat).
+#
+# D16: scholarly abbreviations. "(Eqs. 3, 4) [S1]" was split after "Eqs." into
+# an uncited fragment and a cited one, refusing a correct answer. Capitalised
+# forms are matched case-sensitively (so "the vs" or a sentence ending "...
+# the fig." is not swallowed); lowercase ones are the ones that are only ever
+# lowercase in running text (e.g., i.e., et al., cf., vs., approx.).
+# Trade-off, chosen deliberately: a sentence that really ends in one of these
+# ("... as shown by Smith et al. The next ...") will not split there; the two
+# sentences are verified as one claim, which is the safe direction (the claim
+# needs support for both halves) and rarer than "et al. 2020" mid-sentence.
+# "Fig. 3. The model" still splits correctly: only the first dot follows the
+# abbreviation; the dot after "3" is an ordinary terminator.
+# "No." only counts as an abbreviation when a digit follows ("No. 3"), since
+# "No." alone is a normal sentence ending ("The answer is No.").
 _ABBREV = (
-    r"(?<!\be\.g)(?<!\bi\.e)(?<!\bet\sal)(?<!\bcf)(?<!\bvs)(?<!\bFig)(?<!\bEq)(?<!\bSec)"
+    r"(?<!\be\.g)(?<!\bi\.e)(?<!\bet\sal)(?<!\bcf)(?<!\bvs)(?<!\bapprox)"
+    r"(?<!\bFig)(?<!\bFigs)(?<!\bEq)(?<!\bEqs)(?<!\bSec)(?<!\bSecs)"
+    r"(?<!\bTab)(?<!\bRef)(?<!\bRefs)"
+    r"(?!(?<=\bNo)\.\s*\d)"
     r"(?<!\b[A-Za-z]\.[A-Za-z])"
 )
 # A sentence terminator only counts when whitespace or end-of-text follows it.

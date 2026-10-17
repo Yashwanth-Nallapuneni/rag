@@ -250,3 +250,53 @@ build runs to 2 pages in bitmap fonts and cannot be checked against
 `cv/resume.pdf`. The change is limited to the owner's user-level TeX tree, can
 be undone with `tlmgr remove`, and is needed to produce
 `resume-updated.pdf` in the same typography.
+
+### D15. Add a document-attribution check instead of the MiniLM gate fallback
+
+**Decision:** If a question names exactly one corpus document by title,
+every passage the answer cites must come from that document. Otherwise the
+answer is refused as "cites a different document than the one asked about".
+D11's planned fallback (MiniLM-L6 as a gate-only scorer) is **not** used.
+
+**Why:**
+- The final eval had one false answer (`qa-unans-0013`), the worst failure
+  class. Asked about Paint-Anything's licensing, the model quoted *another
+  paper's* reproducibility checklist ("we follow the licenses and usage terms
+  of the underlying datasets"), cited it, and the verifier approved it on 77%
+  term overlap.
+- The relevance gate behaved correctly. The question is on-topic and
+  Paint-Anything's own passage scored 1.92, so a stricter gate would have
+  refused answerable questions without fixing the real fault. That fault is
+  attribution: the cited passage was faithful to *a* paper, just not the
+  one asked about. Grounding and relevance checks both miss this.
+- The check applies only when a title match is unambiguous, so
+  cross-paper or untitled questions behave exactly as before.
+
+**Caveat:** this failure was found on the golden set, and the fix is
+measured on the same set. The check targets a general failure class
+(misattributed citations), not this one question. The before/after replay
+must still show it newly refuses no answered answerable pair.
+
+### D16. Fix the sentence splitter on "Eqs."
+
+**Decision:** Common scholarly abbreviations ("Eq.", "Eqs.", "Fig.",
+"Figs.", "Sec.", "Tab.", "et al.", "e.g.", "i.e.", "cf.", "vs.") do not end
+a sentence.
+
+**Why:** One correct answer was refused because the splitter cut "weighted
+L1 loss (Eqs. 3, 4) [S1]" into an uncited fragment and a cited one. That is
+a parsing bug of the same family as the earlier "U.S." fix.
+
+### D17. Leave two remaining false-refusal causes alone
+
+**Decision:** No change for:
+- answers that cite with "(S1)" in place of "[S1]";
+- the judge misreading garbled summation symbols in PDF text.
+
+**Why:**
+- "(S1)" is ambiguous with papers' own supplementary references ("Table
+  S1"). Accepting it would weaken the citation contract that makes every
+  marker resolvable.
+- The garbled-math case is a PDF-extraction artifact in one chunk. Working
+  around it in the judge prompt would be fitting to one example.
+- Both stay counted as false refusals in the reported numbers.

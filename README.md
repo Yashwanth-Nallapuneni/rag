@@ -76,8 +76,8 @@ Three diagrams (query path, ingestion path, evaluation path) in
 [`docs/architecture.md`](docs/architecture.md).
 
 Orchestration is a LangGraph state machine: `retrieve → relevance_gate →
-build_context → generate → parse_citations → verify → finalize`, with
-conditional edges routing to a terminal `refuse` node at four distinct points.
+build_context → generate → parse_citations → check_attribution → verify → finalize`, with
+conditional edges routing to a terminal `refuse` node at five distinct points.
 
 ## Results
 

@@ -191,6 +191,8 @@ class AnswerStatus(str, Enum):
     REFUSED_NO_CONTEXT = "refused_no_context"
     REFUSED_LOW_SUPPORT = "refused_low_support"
     REFUSED_BY_MODEL = "refused_by_model"
+    # The question names one document but the answer cites another (D15).
+    REFUSED_MISATTRIBUTED = "refused_misattributed"
     ERROR = "error"
 
 

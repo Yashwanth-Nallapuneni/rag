@@ -215,6 +215,9 @@ class CitationConfig(BaseModel):
     verifier: Literal["lexical", "llm", "hybrid"] = "hybrid"
     lexical_threshold: float = 0.45
     require_citation_per_sentence: bool = True
+    # D15: when a question names exactly one corpus document, every cited
+    # passage must come from it (no LLM call; see generation/attribution.py).
+    enforce_document_attribution: bool = True
     refusal_message: str = (
         "I can't answer that from the indexed documents."
     )

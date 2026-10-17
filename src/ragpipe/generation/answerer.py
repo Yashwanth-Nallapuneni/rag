@@ -22,6 +22,7 @@ from ..prompts import load_prompt
 from ..providers import get_llm
 from ..retrieval import Retriever, get_retriever
 from ..schemas import Answer, AnswerStatus, Citation, ClaimVerdict, RetrievedChunk
+from .attribution import DocumentIndex
 from .context import RenderedContext
 from .graph import build_graph
 
@@ -59,9 +60,17 @@ class Answerer:
         )
         # Compiled once: the graph IS the pipeline, not a decorative parallel
         # path, so `answer()` below only invokes it.
+        self._doc_index: DocumentIndex | None = None
         self._graph = build_graph(self)
 
     # -- helpers --------------------------------------------------------
+    def document_index(self) -> DocumentIndex:
+        """doc_id -> title index for the attribution check, built lazily from
+        the store once (the corpus is fixed between ingests)."""
+        if self._doc_index is None:
+            self._doc_index = DocumentIndex.from_chunks(self.store.iter_chunks())
+        return self._doc_index
+
     def _refuse(
         self,
         question: str,

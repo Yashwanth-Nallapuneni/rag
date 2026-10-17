@@ -24,6 +24,7 @@ from langgraph.graph import END, START, StateGraph
 from ..logging_utils import get_logger, timed
 from ..providers import LLMRequest
 from ..schemas import AnswerStatus, Citation, ClaimVerdict, RetrievedChunk
+from .attribution import check_attribution
 from .citations import (
     has_suspect_markers,
     normalize_citation_markers,
@@ -215,6 +216,27 @@ def _make_parse_citations(answerer: Answerer):
     return parse_citations
 
 
+def _make_check_attribution(answerer: Answerer):
+    def check_attribution_node(state: GraphState) -> dict[str, Any]:
+        # D15: no LLM call. Runs before verify so a misattributed answer is
+        # refused without paying for verification.
+        if not answerer.settings.citation.enforce_document_attribution:
+            return {}
+        rendered: RenderedContext = state["rendered"]
+        mapping = rendered.marker_to_chunk
+        cited = [mapping[c.marker] for c in state.get("citations", []) if c.marker in mapping]
+        reason = check_attribution(state["question"], cited, answerer.document_index())
+        if reason is None:
+            return {}
+        return {
+            "status": AnswerStatus.REFUSED_MISATTRIBUTED,
+            "refusal_reason": reason,
+            "refusal_contexts": rendered.used,
+        }
+
+    return check_attribution_node
+
+
 def _make_verify(answerer: Answerer):
     def verify(state: GraphState) -> dict[str, Any]:
         if answerer.verifier is None:
@@ -289,6 +311,7 @@ _NODES = (
     "build_context",
     "generate",
     "parse_citations",
+    "check_attribution",
     "verify",
     "finalize",
     "refuse",
@@ -296,7 +319,7 @@ _NODES = (
 
 # The stages with a conditional exit to `refuse`; kept alongside the node
 # list so `describe_graph()` and `build_graph()` cannot drift apart.
-_GATED_NODES = ("retrieve", "relevance_gate", "generate", "verify")
+_GATED_NODES = ("retrieve", "relevance_gate", "generate", "check_attribution", "verify")
 
 
 def build_graph(answerer: Answerer):
@@ -310,6 +333,7 @@ def build_graph(answerer: Answerer):
     graph.add_node("build_context", _make_build_context(answerer))
     graph.add_node("generate", _make_generate(answerer))
     graph.add_node("parse_citations", _make_parse_citations(answerer))
+    graph.add_node("check_attribution", _make_check_attribution(answerer))
     graph.add_node("verify", _make_verify(answerer))
     graph.add_node("finalize", _make_finalize(answerer))
     graph.add_node("refuse", _make_refuse(answerer))
@@ -327,7 +351,12 @@ def build_graph(answerer: Answerer):
     graph.add_conditional_edges(
         "generate", _route_on_status, {"refuse": "refuse", "continue": "parse_citations"}
     )
-    graph.add_edge("parse_citations", "verify")
+    graph.add_edge("parse_citations", "check_attribution")
+    graph.add_conditional_edges(
+        "check_attribution",
+        _route_on_status,
+        {"refuse": "refuse", "continue": "verify"},
+    )
     graph.add_conditional_edges(
         "verify", _route_on_status, {"refuse": "refuse", "continue": "finalize"}
     )
@@ -346,7 +375,8 @@ def describe_graph() -> dict[str, Any]:
         "relevance_gate": "build_context",
         "build_context": "generate",
         "generate": "parse_citations",
-        "parse_citations": "verify",
+        "parse_citations": "check_attribution",
+        "check_attribution": "verify",
         "verify": "finalize",
     }
     for node, nxt in linear_next.items():
