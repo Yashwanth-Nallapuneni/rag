@@ -300,3 +300,60 @@ a parsing bug of the same family as the earlier "U.S." fix.
 - The garbled-math case is a PDF-extraction artifact in one chunk. Working
   around it in the judge prompt would be fitting to one example.
 - Both stay counted as false refusals in the reported numbers.
+
+### D18. Spend about $0.60 on a rerank-OFF run of the final commit
+
+**Decision:** Run the rerank-off eval on the final code (d276390) for the
+before/after reranking comparison. Projected total spend: about $3.98 of $5.
+
+**Why:** The spec (§2.2, §5) requires before/after reranking numbers.
+The only existing rerank-off run used the previous commit, without the
+attribution check or the splitter fix, so comparing it to the final
+rerank-on run would mix the reranker's effect with those code changes. The
+remaining ~$1 covers the two CI eval runs (the push and the Dependabot
+merge).
+
+Note on cost tracking: the harness counts only generation and RAGAS judge
+calls. The real OpenRouter delta per full run is about $0.60 against a
+reported ~$0.33, because the claim verifier's judge calls aren't
+attributed. Budget decisions use the real `/key` delta.
+
+### D19. Stop iterating on false refusals; report run-to-run variance
+
+**Decision:** No further fixes after d276390. The 8 remaining false
+refusals are reported as they are.
+
+**Why:**
+- None of the 8 shows a verifier bug:
+  - 2 are the model declining when the gold passage was not retrieved;
+  - 6 are genuinely uncited or overbroad claims, which the traceability
+    rule is right to reject.
+- Two back-to-back runs of nearly identical code differed on 13 pairs, so
+  the run-to-run noise is about the size of any further fix. Changes chased
+  inside that noise would be fitting the golden set.
+- The README reports single-run numbers and says plainly that the
+  generator is non-deterministic.
+
+**Progression on the rerank-on runs** (171 human-verified pairs):
+
+| Run | False refusals | False answers |
+|---|---|---|
+| MiniLM baseline | 32 | 0 |
+| bge reranker + numeric fix | 23 | 0 |
+| prompt v3 + verifier fixes | 9 | 1 |
+| attribution check, final | 8 | 0 |
+
+**Final rerank-on run** (eval_20261017T011212Z_5f0a41881655):
+
+| Metric | Value |
+|---|---|
+| Refusal accuracy | 0.953 |
+| Faithfulness | 0.933 |
+| Answer relevancy | 0.820 |
+| Context precision | 0.910 |
+| Context recall | 0.964 |
+
+**D18 status (2026-10-17):** the rerank-OFF run was stopped before
+completing because the session hit its usage limit. Nothing was published
+from it. Resume step: run the OFF eval on d276390 (see STATE.md §5) and
+compare it like-for-like with eval_20261017T011212Z_5f0a41881655.
