@@ -419,3 +419,19 @@ each file is and where the headline numbers live.
   git-ignored, so nobody could check them from a clone.
 - Copies rather than un-ignoring `eval_results/`: that folder also holds
   scratch and superseded runs that should stay out of git.
+
+### D23. Close out D7 and keep the CI gate sample out of the headline numbers
+
+**Decision:** D7 is closed. PR #2 was squash-merged as `095a82a`, and on that
+commit both workflows passed (tests run 38999802156, eval run 38999802162).
+The CI gate figures are not quoted next to the full-run numbers.
+
+**Why:**
+- The eval step in CI ran on the new action versions and passed its gate:
+  faithfulness 0.8838 against a 0.80 threshold, answer_relevancy 0.8165,
+  context_precision 0.9451, context_recall 1.0000, refusal_accuracy 1.0000.
+  That is the check D7 said I would make rather than assume.
+- The gate runs a 20-question sample (`SAMPLE_SIZE: 20`) to keep CI cheap. The
+  full runs use 171 pairs, so the two sets of numbers differ in sample size and
+  are not comparable. Quoting 0.8838 next to 0.933 would imply a drop that the
+  data does not show.

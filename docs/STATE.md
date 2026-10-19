@@ -108,8 +108,12 @@ v3, hybrid RRF, `candidate_k` 30, `top_k` 5.
 
 ## 5. Remaining (all optional)
 
-- Merge Dependabot PR #2 and confirm the CI checks pass (being done by the
-  orchestrator after this commit): status pending.
+- Done: Dependabot PR #2 was squash-merged as `095a82a`. On that commit both
+  workflows passed (tests run 38999802156, eval run 38999802162). The eval
+  gate used a 20-question CI sample: faithfulness 0.8838 (threshold 0.80),
+  answer_relevancy 0.8165, context_precision 0.9451, context_recall 1.0000,
+  refusal_accuracy 1.0000, verdict PASS. This is a 20-question sample, so it
+  is not comparable to the 171-pair full runs (decisions D23).
 - Fusion weight tuning (spec 2.1) stays at 0.5/0.5 RRF by measurement (see §6).
 - Any further false-refusal work is inside run-to-run noise (decisions D19).
 
