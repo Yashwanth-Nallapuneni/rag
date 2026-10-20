@@ -435,3 +435,21 @@ The CI gate figures are not quoted next to the full-run numbers.
   full runs use 171 pairs, so the two sets of numbers differ in sample size and
   are not comparable. Quoting 0.8838 next to 0.933 would imply a drop that the
   data does not show.
+
+### D24. Final repo audit: one stale test count fixed
+
+**Decision:** Fix `.github/workflows/README.md`, which still said the tests
+workflow runs "317 offline unit/integration tests"; the suite has 363
+non-slow tests (`pytest -m "not slow"`). Nothing else was changed.
+
+**Why:**
+- Checked: ruff on `src tests scripts` passes, the 363 non-slow tests pass,
+  the README result tables match the two JSON runs in `docs/results/`, the
+  gate (-2.5), reranker (`BAAI/bge-reranker-base`) and prompt (v3) agree with
+  `config/default.yaml`, relative links and `make` targets resolve, and no
+  secrets, large files or stray files are tracked.
+- Left alone: remaining MiniLM, -7.0, 180-draft and v2 mentions are labelled
+  history. `ruff format --check` would reformat 59 files, but CI only runs
+  `ruff check`, and reformatting would be a mass change with no behaviour gain.
+  `ruff` is not installed in `.venv` (CI installs it from `requirements.txt`),
+  so lint was run with the system ruff 0.16.8, the pinned version.

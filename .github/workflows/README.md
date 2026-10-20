@@ -4,7 +4,7 @@ Two separate workflows, two separate badges, two separate meanings:
 
 | Workflow | Badge | Answers |
 |---|---|---|
-| [`tests.yml`](./tests.yml) | tests | "Does the code work?" (lint + 317 offline unit/integration tests) |
+| [`tests.yml`](./tests.yml) | tests | "Does the code work?" (lint + 363 offline unit/integration tests) |
 | [`eval.yml`](./eval.yml) | answer quality | "Are the answers still good?" (RAGAS eval vs. the golden dataset) |
 
 They're split on purpose. `tests.yml` is free, fast and needs no secret.
